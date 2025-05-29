@@ -256,6 +256,28 @@ See https://github.com/adobe-type-tools/cmap-resources
                       </div>
                     </div>
                   </div>
+                    <div id="editorUnderline" class="toolbarButtonWithContainer">
+                        <button id="editorUnderlineButton" class="toolbarButton" type="button" disabled="disabled" role="radio"
+                          aria-expanded="false" aria-haspopup="true" aria-controls="editorUnderlineParamsToolbar" tabindex="0"
+                          data-l10n-id="pdfjs-editor-underline-button">
+                          <span data-l10n-id="pdfjs-editor-area-highlight-button-label"></span>
+                        </button>
+                        <div class="editorParamsToolbar hidden doorHangerRight" id="editorUnderlineParamsToolbar">
+                          <div class="editorParamsToolbarContainer">
+                            <div class="editorParamsSetter">
+                              <label for="editorUnderlineColor" class="editorParamsLabel"
+                                data-l10n-id="pdfjs-editor-ink-color-input"></label>
+                              <input type="color" id="editorAreaHighlightColor" class="editorParamsColor" tabindex="0">
+                            </div>
+                            <div class="editorParamsSetter">
+                              <label for="editorUnderlineOpacity" class="editorParamsLabel"
+                                data-l10n-id="pdfjs-editor-ink-opacity-input"></label>
+                              <input type="range" id="editorUnderlineOpacity" class="editorParamsSlider" value="0.5" min="0.1" max="1"
+                                step="0.1" tabindex="0">
+                            </div>
+                          </div>
+                        </div>
+                    </div>
                   <div id="editorHighlight" class="toolbarButtonWithContainer">
                     <button id="editorHighlightButton" class="toolbarButton" type="button" disabled="disabled" role="radio" aria-expanded="false" aria-haspopup="true" aria-controls="editorHighlightParamsToolbar" tabindex="0" data-l10n-id="pdfjs-editor-highlight-button">
                       <span data-l10n-id="pdfjs-editor-highlight-button-label"></span>
@@ -280,11 +302,6 @@ See https://github.com/adobe-type-tools/cmap-resources
                         </div>
                       </div>
                     </div>
-                  </div>
-                  <div id="editorUnderline" class="toolbarButtonWithContainer">
-                    <button id="editorUnderlineButton" class="toolbarButton" type="button" role="radio" aria-expanded="false" aria-haspopup="true" aria-controls="editorUnderlineParamsToolbar" tabindex="0" data-l10n-id="pdfjs-editor-underline-button">
-                      <span>下划线</span>
-                    </button>
                   </div>
                   <div id="editorStrikethrough" class="toolbarButtonWithContainer">
                     <button id="editorStrikethroughButton" class="toolbarButton" type="button" role="radio" aria-expanded="false" aria-haspopup="true" aria-controls="editorStrikethroughParamsToolbar" tabindex="0" data-l10n-id="pdfjs-editor-strikethrough-button">

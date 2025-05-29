@@ -547,7 +547,6 @@ body {
 }
 
 
-
 #editorInkButton::before {
   mask-image: var(--toolbarButton-editorInk-icon);
 }

@@ -36,7 +36,7 @@ import { setLayerDimensions } from "../display_utils.js";
 import { SignatureEditor } from "./signature.js";
 import { StampEditor } from "./stamp.js";
 import { StrikethroughEditor } from "./strikethrough.js";
-// import { UnderlineEditor } from "./underline.js";
+import { UnderlineEditor } from "./underline.js";
 
 /**
  * @typedef {Object} AnnotationEditorLayerOptions
@@ -104,7 +104,7 @@ class AnnotationEditorLayer {
       SignatureEditor,
       AreaHighlightEditor,
       StrikethroughEditor,
-      // UnderlineEditor,
+      UnderlineEditor,
     ].map(type => [type._editorType, type])
   );
 

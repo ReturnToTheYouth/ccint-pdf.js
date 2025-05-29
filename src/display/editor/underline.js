@@ -16,71 +16,134 @@
 import {
   AnnotationEditorParamsType,
   AnnotationEditorType,
+  shadow,
   Util,
 } from "../../shared/util.js";
+import { bindEvents, KeyboardManager } from "./tools.js";
+import {
+  FreeHighlightOutliner,
+  HighlightOutliner,
+} from "./drawers/highlight.js";
+import {
+  HighlightAnnotationElement,
+  InkAnnotationElement,
+} from "../annotation_layer.js";
+import { noContextMenu, stopEvent } from "../display_utils.js";
 import { AnnotationEditor } from "./editor.js";
-import { Outliner } from "./outliner.js";
 import { ColorPicker } from "./color_picker.js";
-import { bindEvents } from "./tools.js";
 
 /**
- * 下划线
+ * Basic draw editor in order to generate an Underline annotation.
  */
 class UnderlineEditor extends AnnotationEditor {
+  #anchorNode = null;
+
+  #anchorOffset = 0;
+
   #boxes;
 
   // 画线的boxes
   #lineBoxes;
 
+  #ids = null;
+
   #clipPathId = null;
 
+  #colorPicker = null;
+
   #focusOutlines = null;
+
+  #focusNode = null;
+
+  #focusOffset = 0;
 
   #underlineDiv = null;
 
   #underlineOutlines = null;
 
-  #ids = null;
-
   #lastPoint = null;
 
   #outlineId = null;
 
-  #colorPicker = null;
+  #text = "";
 
-  color = "#000";
+  #opacity;
 
-  static _l10nPromise;
+  #methodOfCreation = "";
+
+  static _defaultColor = "#000";
+
+  static _defaultOpacity = 1;
 
   static _type = "underline";
 
   static _editorType = AnnotationEditorType.UNDERLINE;
 
+  static get _keyboardManager() {
+    const proto = UnderlineEditor.prototype;
+    return shadow(
+      this,
+      "_keyboardManager",
+      new KeyboardManager([
+        [["ArrowLeft", "mac+ArrowLeft"], proto._moveCaret, { args: [0] }],
+        [["ArrowRight", "mac+ArrowRight"], proto._moveCaret, { args: [1] }],
+        [["ArrowUp", "mac+ArrowUp"], proto._moveCaret, { args: [2] }],
+        [["ArrowDown", "mac+ArrowDown"], proto._moveCaret, { args: [3] }],
+      ])
+    );
+  }
+
   constructor(params) {
     super({ ...params, name: "underlineEditor" });
-    // 这个是用来计算的
-    this.#boxes = params.boxes;
+    this.color = params.color || UnderlineEditor._defaultColor;
+    this.#opacity = params.opacity || UnderlineEditor._defaultOpacity;
+    this.#boxes = params.boxes || null;
     // 这个是用来绘图的
     this.#lineBoxes = AnnotationEditor.deduplicate(params.boxes);
+    this.#methodOfCreation = params.methodOfCreation || "";
+    this.#text = params.text || "";
     this._isDraggable = false;
-    this.selectedText = params.selectedText;
-    this.fromCommand = params.fromCommand;
+    this.defaultL10nId = "pdfjs-editor-underline-editor";
 
-    this.#createOutlines();
-    this.#addToDrawLayer();
-    // 旋转 看最后需求吧，需要旋转则要，不需要则拉倒
-    // this.rotate(this.rotation);
+    if (this.#boxes) {
+      this.#anchorNode = params.anchorNode;
+      this.#anchorOffset = params.anchorOffset;
+      this.#focusNode = params.focusNode;
+      this.#focusOffset = params.focusOffset;
+      this.#createOutlines();
+      this.#addToDrawLayer();
+    }
+  }
+
+  /** @inheritdoc */
+  get telemetryInitialData() {
+    return {
+      action: "added",
+      type: "underline",
+      color: this.color || UnderlineEditor._defaultColor,
+      methodOfCreation: this.#methodOfCreation,
+    };
+  }
+
+  /** @inheritdoc */
+  get telemetryFinalData() {
+    return {
+      type: "underline",
+      color: this.color || UnderlineEditor._defaultColor,
+    };
+  }
+
+  static computeTelemetryFinalData(data) {
+    // We want to know how many colors have been used.
+    return { numberOfColors: data.get("color").size };
   }
 
   #createOutlines() {
-    // 为了计算box的outline
-    const outlinerForBox = new Outliner(this.#boxes, /* borderWidth = */ 0);
-    const box = outlinerForBox.getBox();
-    this.x = box.x;
-    this.y = box.y;
-    this.width = box.width;
-    this.height = box.height;
-    const outlinerForOutline = new Outliner(
+    const outliner = new HighlightOutliner(this.#boxes, /* borderWidth = */ 0);
+    this.#underlineOutlines = outliner.getOutlines();
+    [this.x, this.y, this.width, this.height] = this.#underlineOutlines.box;
+
+    const outlinerForOutline = new HighlightOutliner(
       this.#boxes,
       /* borderWidth = */ 0.0025,
       /* innerMargin = */ 0.001,
@@ -88,19 +151,24 @@ class UnderlineEditor extends AnnotationEditor {
     );
     this.#focusOutlines = outlinerForOutline.getOutlines();
 
-    // last-point不好复用是因为在box被我改过了
-    const { lastPoint } = this.#focusOutlines.box;
+    // The last point is in the pages coordinate system.
+    const { lastPoint } = this.#focusOutlines;
     this.#lastPoint = [
       (lastPoint[0] - this.x) / this.width,
       (lastPoint[1] - this.y) / this.height,
     ];
   }
 
-  static initialize(l10n) {
+  /** @inheritdoc */
+  static initialize(l10n, uiManager) {
     AnnotationEditor.initialize(l10n);
   }
 
-  static updateDefaultParams() {}
+  /** @inheritdoc */
+  static updateDefaultParams(type, value) {}
+
+  /** @inheritdoc */
+  translateInPage(x, y) {}
 
   /** @inheritdoc */
   get toolbarPosition() {
@@ -120,6 +188,25 @@ class UnderlineEditor extends AnnotationEditor {
     }
   }
 
+  static get defaultPropertiesToUpdate() {
+    return [
+      [
+        AnnotationEditorParamsType.UNDERLINE_COLOR,
+        UnderlineEditor._defaultColor,
+      ],
+    ];
+  }
+
+  /** @inheritdoc */
+  get propertiesToUpdate() {
+    return [
+      [
+        AnnotationEditorParamsType.UNDERLINE_COLOR,
+        this.color || UnderlineEditor._defaultColor,
+      ],
+    ];
+  }
+
   /**
    * Update the color and make this action undoable.
    * @param {string} color
@@ -127,9 +214,8 @@ class UnderlineEditor extends AnnotationEditor {
   #updateColor(color) {
     const setColor = col => {
       this.color = col;
-      const { drawLayer } = this.parent;
       for (const id of this.#ids) {
-        drawLayer.changeStrokeColor(id, col);
+        this.parent?.drawLayer.changeStrokeColor(id, col);
       }
       this.#colorPicker?.updateColor(col);
     };
@@ -151,15 +237,6 @@ class UnderlineEditor extends AnnotationEditor {
       },
       /* mustWait = */ true
     );
-  }
-
-  static get defaultPropertiesToUpdate() {
-    return [];
-  }
-
-  /** @inheritdoc */
-  get propertiesToUpdate() {
-    return [];
   }
 
   /** @inheritdoc */
@@ -189,26 +266,38 @@ class UnderlineEditor extends AnnotationEditor {
 
   /** @inheritdoc */
   fixAndSetPosition() {
-    return super.fixAndSetPosition(0);
+    return super.fixAndSetPosition(this.#getRotation());
+  }
+
+  /** @inheritdoc */
+  getBaseTranslation() {
+    // The editor itself doesn't have any CSS border (we're drawing one
+    // ourselves in using SVG).
+    return [0, 0];
   }
 
   /** @inheritdoc */
   getRect(tx, ty) {
-    return super.getRect(tx, ty, 0);
+    return super.getRect(tx, ty, this.#getRotation());
   }
 
   /** @inheritdoc */
-  onceAdded() {
-    this.parent.addUndoableEditor(this);
-    if (!this.fromCommand) {
+  onceAdded(focus) {
+    if (!this.annotationElementId) {
+      this.parent.addUndoableEditor(this);
+    }
+    if (focus) {
       this.div.focus();
     }
   }
 
   /** @inheritdoc */
-  remove(forHide = false) {
-    super.remove(forHide);
+  remove() {
     this.#cleanDrawLayer();
+    this._reportTelemetry({
+      action: "deleted",
+    });
+    super.remove();
   }
 
   /** @inheritdoc */
@@ -224,7 +313,7 @@ class UnderlineEditor extends AnnotationEditor {
     this.#addToDrawLayer();
 
     if (!this.isAttachedToDOM) {
-      // At some point this editor was removed and we're rebuilting it,
+      // At some point this editor was removed and we're rebuilding it,
       // hence we must add it to its parent.
       this.parent.add(this);
     }
@@ -242,6 +331,7 @@ class UnderlineEditor extends AnnotationEditor {
         !this.parent && this.div?.classList.contains("selectedEditor");
     }
     super.setParent(parent);
+    this.show(this._isVisible);
     if (mustBeSelected) {
       // We select it after the parent has been set.
       this.select();
@@ -266,61 +356,23 @@ class UnderlineEditor extends AnnotationEditor {
     }
     // 第一个是画本体
     this.#ids = parent.drawLayer.drawLine(this.#lineBoxes, 0.85);
+    this.#outlineId = parent.drawLayer.drawOutline(
+      {
+        rootClass: {
+          highlightOutline: true,
+          free: false,
+        },
+        bbox: this.#focusOutlines.box,
+        path: {
+          d: this.#focusOutlines.toSVGPath(),
+        },
+      },
+      /* mustRemoveSelfIntersections = */ false
+    );
 
-    // 第二个是画轮廓 画轮廓的要留着，画本体的要改掉
-    const ret = parent.drawLayer.lineOutline({
-      outlines: this.#focusOutlines.outlines,
-      box: this.#focusOutlines.box,
-    });
-    this.#outlineId = ret.id;
-    this.#clipPathId = ret.clipPathId;
     if (this.#underlineDiv) {
       this.#underlineDiv.style.clipPath = this.#clipPathId;
     }
-  }
-
-  static #rotateBbox({ x, y, width, height }, angle) {
-    switch (angle) {
-      case 90:
-        return {
-          x: 1 - y - height,
-          y: x,
-          width: height,
-          height: width,
-        };
-      case 180:
-        return {
-          x: 1 - x - width,
-          y: 1 - y - height,
-          width,
-          height,
-        };
-      case 270:
-        return {
-          x: y,
-          y: 1 - x - width,
-          width: height,
-          height: width,
-        };
-    }
-    return {
-      x,
-      y,
-      width,
-      height,
-    };
-  }
-
-  /** @inheritdoc */
-  rotate(angle) {
-    const { drawLayer } = this.parent;
-    // drawLayer.rotate(this.#id, angle);
-    drawLayer.rotate(this.#outlineId, angle);
-    // drawLayer.updateBox(this.#id, UnderlineEditor.#rotateBbox(this, angle));
-    drawLayer.updateBox(
-      this.#outlineId,
-      UnderlineEditor.#rotateBbox(this.#focusOutlines.box, angle)
-    );
   }
 
   /** @inheritdoc */
@@ -344,49 +396,132 @@ class UnderlineEditor extends AnnotationEditor {
   }
 
   pointerover() {
-    this.parent.drawLayer.addClass(this.#outlineId, "hovered");
+    if (!this.isSelected) {
+      this.parent?.drawLayer.updateProperties(this.#outlineId, {
+        rootClass: {
+          hovered: true,
+        },
+      });
+    }
   }
 
   pointerleave() {
-    this.parent.drawLayer.removeClass(this.#outlineId, "hovered");
+    if (!this.isSelected) {
+      this.parent?.drawLayer.updateProperties(this.#outlineId, {
+        rootClass: {
+          hovered: false,
+        },
+      });
+    }
+  }
+
+  _moveCaret(direction) {
+    this.parent.unselect(this);
+    switch (direction) {
+      case 0 /* left */:
+      case 2 /* up */:
+        this.#setCaret(/* start = */ true);
+        break;
+      case 1 /* right */:
+      case 3 /* down */:
+        this.#setCaret(/* start = */ false);
+        break;
+    }
+  }
+
+  #setCaret(start) {
+    if (!this.#anchorNode) {
+      return;
+    }
+    const selection = window.getSelection();
+    if (start) {
+      selection.setPosition(this.#anchorNode, this.#anchorOffset);
+    } else {
+      selection.setPosition(this.#focusNode, this.#focusOffset);
+    }
   }
 
   /** @inheritdoc */
   select() {
     super.select();
-    this.parent?.drawLayer.removeClass(this.#outlineId, "hovered");
-    this.parent?.drawLayer.addClass(this.#outlineId, "selected");
+    if (!this.#outlineId) {
+      return;
+    }
+    this.parent?.drawLayer.updateProperties(this.#outlineId, {
+      rootClass: {
+        hovered: false,
+        selected: true,
+      },
+    });
   }
 
   /** @inheritdoc */
   unselect() {
-    this.div.blur();
     super.unselect();
-    this.parent?.drawLayer.removeClass(this.#outlineId, "selected");
+    if (!this.#outlineId) {
+      return;
+    }
+    this.parent?.drawLayer.updateProperties(this.#outlineId, {
+      rootClass: {
+        selected: false,
+      },
+    });
+
+    this.#setCaret(/* start = */ false);
+  }
+
+  /** @inheritdoc */
+  get _mustFixPosition() {
+    return true;
+  }
+
+  /** @inheritdoc */
+  show(visible = this._isVisible) {
+    super.show(visible);
+    if (this.parent) {
+      for (const id of this.#ids) {
+        this.parent.drawLayer.updateProperties(id, {
+          rootClass: {
+            hidden: !visible,
+          },
+        });
+      }
+      this.parent.drawLayer.updateProperties(this.#outlineId, {
+        rootClass: {
+          hidden: !visible,
+        },
+      });
+    }
+  }
+
+  #getRotation() {
+    // Highlight annotations are always drawn horizontally but if
+    // a free highlight annotation can be rotated.
+    return 0;
   }
 
   #serializeBoxes() {
     const [pageWidth, pageHeight] = this.pageDimensions;
+    const [pageX, pageY] = this.pageTranslation;
     const boxes = this.#boxes;
-    const quadPoints = new Array(boxes.length * 8);
+    const quadPoints = new Float32Array(boxes.length * 8);
     let i = 0;
     for (const { x, y, width, height } of boxes) {
-      const sx = x * pageWidth;
-      const sy = (1 - y - height) * pageHeight;
-      // The specifications say that the rectangle should start from the bottom
-      // left corner and go counter-clockwise.
-      // But when opening the file in Adobe Acrobat it appears that this isn't
-      // correct hence the 4th and 6th numbers are just swapped.
+      const sx = x * pageWidth + pageX;
+      const sy = (1 - y) * pageHeight + pageY;
+      // Serializes the rectangle in the Adobe Acrobat format.
+      // The rectangle's coordinates (b = bottom, t = top, L = left, R = right)
+      // are ordered as follows: tL, tR, bL, bR (bL origin).
       quadPoints[i] = quadPoints[i + 4] = sx;
       quadPoints[i + 1] = quadPoints[i + 3] = sy;
       quadPoints[i + 2] = quadPoints[i + 6] = sx + width * pageWidth;
-      quadPoints[i + 5] = quadPoints[i + 7] = sy + height * pageHeight;
+      quadPoints[i + 5] = quadPoints[i + 7] = sy - height * pageHeight;
       i += 8;
     }
     return quadPoints;
   }
 
-  #serializeOutlines() {
+  #serializeOutlines(rect) {
     const [pageWidth, pageHeight] = this.pageDimensions;
     const width = this.width * pageWidth;
     const height = this.height * pageHeight;
@@ -446,6 +581,15 @@ class UnderlineEditor extends AnnotationEditor {
       rotation: 0,
       structTreeParentId: this._structTreeParentId,
     };
+  }
+
+  /** @inheritdoc */
+  renderAnnotationElement(annotation) {
+    annotation.updateEdited({
+      rect: this.getRect(0, 0),
+    });
+
+    return null;
   }
 
   static canCreateNewEmptyEditor() {

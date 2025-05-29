@@ -318,6 +318,9 @@ class Toolbar {
       editorFreeTextParamsToolbar,
       editorHighlightButton,
       editorHighlightParamsToolbar,
+      editorUnderlineButton,
+      editorUnderlineParamsToolbar,
+      editorStrikethroughButton,
       editorInkButton,
       editorInkParamsToolbar,
       editorStampButton,
@@ -358,6 +361,16 @@ class Toolbar {
       mode === AnnotationEditorType.AREAHIGHLIGHT,
       editorAreaHighlightParamsToolbar
     );
+    toggleExpandedBtn(
+      editorUnderlineButton,
+      mode === AnnotationEditorType.UNDERLINE,
+      editorUnderlineParamsToolbar
+    );
+    toggleExpandedBtn(
+      editorStrikethroughButton,
+      mode === AnnotationEditorType.STRIKETHROUGH,
+      null
+    );
 
     const isDisable = mode === AnnotationEditorType.DISABLE;
     editorFreeTextButton.disabled = isDisable;
@@ -366,6 +379,8 @@ class Toolbar {
     editorStampButton.disabled = isDisable;
     editorSignatureButton.disabled = isDisable;
     editorAreaHighlightButton.disabled = isDisable;
+    editorUnderlineButton.disabled = isDisable;
+    editorStrikethroughButton.disabled = isDisable;
   }
 
   #updateUIState(resetNumPages = false) {

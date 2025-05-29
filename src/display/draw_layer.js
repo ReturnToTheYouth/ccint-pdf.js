@@ -124,6 +124,35 @@ class DrawLayer {
     return { id, clipPathId: `url(#${clipPathId})` };
   }
 
+  // 下划线和删除线画线的地方，percent表示位置
+  drawLine(boxes, percent) {
+    // box index
+    const ids = [];
+    for (const bdx in boxes) {
+      const box = boxes[bdx];
+      const id = DrawLayer.#id++;
+      const root = this.#createSVG(box);
+      root.classList.add("highlight");
+      // 去除掉不需要的box
+      root.removeAttribute("viewBox");
+      const defs = DrawLayer._svgFactory.createElement("defs");
+      root.append(defs);
+      const line = DrawLayer._svgFactory.createElement("line");
+      defs.append(line);
+      const lineId = `line_p${this.pageIndex}_${id}`;
+      line.setAttribute("id", lineId);
+      DrawLayer.drawLine(line, percent);
+      const use = DrawLayer._svgFactory.createElement("use");
+      root.append(use);
+      // 默认为黑色
+      use.setAttribute("style", "color: #000");
+      use.setAttribute("href", `#${lineId}`);
+      ids.push(id);
+      this.#mapping.set(id, root);
+    }
+    return ids;
+  }
+
   drawOutline(properties, mustRemoveSelfIntersections) {
     // We cannot draw the outline directly in the SVG for highlights because
     // it composes with its parent with mix-blend-mode: multiply.
@@ -342,6 +371,14 @@ class DrawLayer {
   finalizeDraw(id, properties) {
     this.#toUpdate.delete(id);
     this.updateProperties(id, properties);
+  }
+
+  // 修改stroke颜色、适配于下划线和删除线
+  changeStrokeColor(id, color) {
+    const root = this.#mapping.get(id);
+    // 获取use标签子元素
+    const use = root.lastChild;
+    use.setAttribute("style", `color: ${color}`);
   }
 
   updateProperties(elementOrId, properties) {
