@@ -42,6 +42,21 @@ function bindEvents(obj, element, names) {
   }
 }
 
+class AnnotationEditorHook {
+  // new完对象后调的，不是所有的组件都有
+  postConstruct = e => {};
+
+  // 在对editor经过一轮调整之后做的，
+  // 只有那种绘制完了还会继续调整的批注才有
+  postModifyConfirm = e => {};
+
+  // 删除一个对象之后调用的
+  postDestory = e => {};
+
+  // 初始化之后调用的，不是所有的都有，目前只有AreaHighlightEditor有
+  postInitialize = e => {};
+}
+
 /**
  * Class to create some unique ids for the different editors.
  */
@@ -659,6 +674,8 @@ class AnnotationEditorUIManager {
 
   #showAllStates = null;
 
+  hook = new AnnotationEditorHook();
+
   #previousStates = {
     isEditing: false,
     isEmpty: true,
@@ -973,6 +990,15 @@ class AnnotationEditorUIManager {
         ? new Map(Array.from(this.highlightColors, e => e.reverse()))
         : null
     );
+  }
+
+  getId() {
+    return this.#idManager.id;
+  }
+
+  // 设置id起始值
+  setId(id) {
+    this.#idManager.setId(id);
   }
 
   /**

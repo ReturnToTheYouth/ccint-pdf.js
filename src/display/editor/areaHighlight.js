@@ -22,8 +22,6 @@ class AreaHighlightEditor extends AnnotationEditor {
 
   #colorPicker = null;
 
-  #outlineId = null;
-
   static _internalPadding = 0;
 
   static _defaultColor = "#FFFF98";
@@ -59,10 +57,12 @@ class AreaHighlightEditor extends AnnotationEditor {
 
   constructor(params) {
     super({ ...params, name: "areaHighlightEditor" });
+    this._isDraggable = true;
     this.#color =
       params.color ||
       AreaHighlightEditor._defaultColor ||
       AnnotationEditor._defaultLineColor;
+    this.#opacity = params.opacity || AreaHighlightEditor._defaultOpacity;
     // 自动渲染 不同于手动渲染
     if (params.fromCommand) {
       this.fromCommand = true;
@@ -304,16 +304,9 @@ class AreaHighlightEditor extends AnnotationEditor {
     this.div.style.height = "0px";
     this.div.style.position = "absolute";
     this.div.style.backgroundColor = addOpacityToColor(
-      this.color,
+      this.#color,
       this.#opacity
     );
-
-    this.overlayDiv = document.createElement("div");
-    this.overlayDiv.classList.add("overlay", "enabled");
-    this.div.append(this.overlayDiv);
-
-    bindEvents(this, this.div, ["pointerover", "pointerleave"]);
-    this._isDraggable = true;
 
     if (typeof PDFJSDev !== "undefined" && PDFJSDev.test("TESTING")) {
       this.div.setAttribute("annotation-id", this.annotationElementId);

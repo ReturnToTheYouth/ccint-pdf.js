@@ -27,6 +27,7 @@
 
 import { AnnotationEditorType, FeatureTest } from "../../shared/util.js";
 import { AnnotationEditor } from "./editor.js";
+import { AreaHighlightEditor } from "./areaHighlight.js";
 import { FreeTextEditor } from "./freetext.js";
 import { getLeftTopCoord } from "./tools.js";
 import { HighlightEditor } from "./highlight.js";
@@ -34,6 +35,8 @@ import { InkEditor } from "./ink.js";
 import { setLayerDimensions } from "../display_utils.js";
 import { SignatureEditor } from "./signature.js";
 import { StampEditor } from "./stamp.js";
+// import { StrikethroughEditor } from "./strikethrough.js";
+// import { UnderlineEditor } from "./underline.js";
 
 /**
  * @typedef {Object} AnnotationEditorLayerOptions
@@ -99,6 +102,9 @@ class AnnotationEditorLayer {
       StampEditor,
       HighlightEditor,
       SignatureEditor,
+      AreaHighlightEditor,
+      // StrikethroughEditor,
+      // UnderlineEditor,
     ].map(type => [type._editorType, type])
   );
 
