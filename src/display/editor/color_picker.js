@@ -69,7 +69,20 @@ class ColorPicker {
   constructor({ editor = null, uiManager = null }) {
     if (editor) {
       this.#isMainColorPicker = false;
-      this.#type = AnnotationEditorParamsType.HIGHLIGHT_COLOR;
+      //  --- 将颜色选择器适配各种类型 ---
+      switch (editor.name) {
+        case "areaHighlightEditor":
+          this.#type = AnnotationEditorParamsType.AREA_HIGHLIGHT_COLOR;
+          break;
+        case "underlineEditor":
+          this.#type = AnnotationEditorParamsType.UNDERLINE_COLOR;
+          break;
+        case "strikethroughEditor":
+          this.#type = AnnotationEditorParamsType.STRIKETHROUGH_COLOR;
+          break;
+        default:
+          this.#type = AnnotationEditorParamsType.HIGHLIGHT_COLOR;
+      }
       this.#editor = editor;
     } else {
       this.#isMainColorPicker = true;

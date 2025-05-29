@@ -162,6 +162,14 @@ class AreaHighlightEditor extends AnnotationEditor {
       overwriteIfSameType: true,
       keepUndo: true,
     });
+
+    this._reportTelemetry(
+      {
+        action: "color_changed",
+        color,
+      },
+      /* mustWait = */ true
+    );
   }
 
   /**
