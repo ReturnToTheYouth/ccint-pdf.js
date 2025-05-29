@@ -611,7 +611,7 @@
 }
 
 .annotationEditorLayer {
-  :is(.freeTextEditor, .inkEditor, .stampEditor, .signatureEditor) {
+  :is(.freeTextEditor, .inkEditor, .stampEditor, .signatureEditor,.areaHighlightEditor) {
     & > .resizers {
       position: absolute;
       inset: 0;

@@ -105,6 +105,10 @@ class AreaHighlightEditor extends AnnotationEditor {
     }
   }
 
+  get isResizable() {
+    return true;
+  }
+
   /** @inheritdoc */
   updateParams(type, value) {
     switch (type) {
