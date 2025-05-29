@@ -98,11 +98,7 @@ class AreaHighlightEditor extends AnnotationEditor {
 
   /** @inheritdoc */
   static updateDefaultParams(type, value) {
-    switch (type) {
-      case AnnotationEditorParamsType.AREA_HIGHLIGHT_COLOR:
-        AreaHighlightEditor._defaultColor = value;
-        break;
-    }
+    // do nothing
   }
 
   get isResizable() {
