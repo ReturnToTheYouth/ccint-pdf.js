@@ -28,6 +28,7 @@
 import { AnnotationEditorType, FeatureTest } from "../../shared/util.js";
 import { AnnotationEditor } from "./editor.js";
 import { FreeTextEditor } from "./freetext.js";
+import { getLeftTopCoord } from "./tools.js";
 import { HighlightEditor } from "./highlight.js";
 import { InkEditor } from "./ink.js";
 import { setLayerDimensions } from "../display_utils.js";
@@ -72,6 +73,8 @@ class AnnotationEditorLayer {
   #editors = new Map();
 
   #hadPointerDown = false;
+
+  #pointerDownEditor = null;
 
   #isDisabling = false;
 
@@ -176,6 +179,11 @@ class AnnotationEditorLayer {
         this.enableTextSelection();
         this.togglePointerEvents(false);
         this.disableClick();
+        break;
+      case AnnotationEditorType.AREAHIGHLIGHT:
+        this.disableTextSelection();
+        this.togglePointerEvents(true);
+        this.enableClick();
         break;
       default:
         this.disableTextSelection();
@@ -434,6 +442,12 @@ class AnnotationEditorLayer {
     const pointerup = this.pointerup.bind(this);
     this.div.addEventListener("pointerup", pointerup, { signal });
     this.div.addEventListener("pointercancel", pointerup, { signal });
+    this.div.addEventListener("pointermove", this.pointermove.bind(this), {
+      signal,
+    });
+    this.div.addEventListener("pointerleave", this.pointerleave.bind(this), {
+      signal,
+    });
   }
 
   disableClick() {
@@ -735,6 +749,8 @@ class AnnotationEditorLayer {
    * @param {PointerEvent} event
    */
   pointerup(event) {
+    const currEditor = this.#pointerDownEditor;
+    this.#pointerDownEditor = null;
     const { isMac } = FeatureTest.platform;
     if (event.button !== 0 || (event.ctrlKey && isMac)) {
       // Don't create an editor on right click.
@@ -775,7 +791,21 @@ class AnnotationEditorLayer {
       return;
     }
 
-    this.createAndAddNewEditor(event, /* isCentered = */ false);
+    if (this.#uiManager.getMode() !== AnnotationEditorType.AREAHIGHLIGHT) {
+      this.createAndAddNewEditor(event, /* isCentered = */ false);
+    }
+
+    // 如果是区域高亮直接创建
+    // NOTE: 这里需要判断currEditor是否为有效区域（宽度不为0），否则不创建
+    if (
+      this.#uiManager.getMode() === AnnotationEditorType.AREAHIGHLIGHT &&
+      currEditor &&
+      currEditor.originWidth > 0 &&
+      currEditor.originHeight > 0
+    ) {
+      currEditor.postConfirm();
+      this.#uiManager.hook.postInitialize(currEditor);
+    }
   }
 
   /**
@@ -783,7 +813,11 @@ class AnnotationEditorLayer {
    * @param {PointerEvent} event
    */
   pointerdown(event) {
-    if (this.#uiManager.getMode() === AnnotationEditorType.HIGHLIGHT) {
+    if (
+      this.#uiManager.getMode() === AnnotationEditorType.HIGHLIGHT ||
+      this.#uiManager.getMode() === AnnotationEditorType.UNDERLINE ||
+      this.#uiManager.getMode() === AnnotationEditorType.STRIKETHROUGH
+    ) {
       this.enableTextSelection();
     }
     if (this.#hadPointerDown) {
@@ -814,6 +848,31 @@ class AnnotationEditorLayer {
 
     const editor = this.#uiManager.getActive();
     this.#allowClick = !editor || editor.isEmpty();
+
+    // 如果是区域高亮、获取editor的位置并创建
+    if (this.#uiManager.getMode() === AnnotationEditorType.AREAHIGHLIGHT) {
+      this.#pointerDownEditor = this.createAndAddNewEditor(event);
+      this.#pointerDownEditor.parentOffset = getLeftTopCoord(this.div);
+    }
+  }
+
+  pointermove(event) {
+    if (
+      this.#uiManager.getMode() === AnnotationEditorType.AREAHIGHLIGHT &&
+      this.#hadPointerDown &&
+      this.#pointerDownEditor &&
+      this.#pointerDownEditor.name === "areaHighlightEditor"
+    ) {
+      this.#pointerDownEditor.pointerLocationChange(event);
+    }
+  }
+
+  pointerleave(event) {
+    if (this.#uiManager.getMode() === AnnotationEditorType.AREAHIGHLIGHT) {
+      // 欺骗一下poniterup
+      event.release = true;
+      this.pointerup(event);
+    }
   }
 
   startDrawingSession(event) {

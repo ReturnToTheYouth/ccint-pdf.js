@@ -56,11 +56,21 @@ function getViewerConfiguration() {
         "editorFreeTextParamsToolbar"
       ),
       editorHighlightButton: document.getElementById("editorHighlightButton"),
+
       editorHighlightParamsToolbar: document.getElementById(
         "editorHighlightParamsToolbar"
       ),
       editorHighlightColorPicker: document.getElementById(
         "editorHighlightColorPicker"
+      ),
+      editorAreaHighlightButton: document.getElementById(
+        "editorAreaHighlightButton"
+      ),
+      editorAreaHighlightParamsToolbar: document.getElementById(
+        "editorAreaHighlightParamsToolbar"
+      ),
+      editorAreaHighlightColorPicker: document.getElementById(
+        "editorAreaHighlightColorPicker"
       ),
       editorInkButton: document.getElementById("editorInkButton"),
       editorInkParamsToolbar: document.getElementById("editorInkParamsToolbar"),

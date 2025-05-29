@@ -76,6 +76,9 @@ const AnnotationEditorType = {
   STAMP: 13,
   INK: 15,
   SIGNATURE: 101,
+  AREAHIGHLIGHT: 18,
+  UNDERLINE: 22,
+  STRIKETHROUGH: 26,
 };
 
 const AnnotationEditorParamsType = {
@@ -93,6 +96,10 @@ const AnnotationEditorParamsType = {
   HIGHLIGHT_FREE: 34,
   HIGHLIGHT_SHOW_ALL: 35,
   DRAW_STEP: 41,
+  // --- 新增批注变化类型 ----
+  AREA_HIGHLIGHT_COLOR: 51,
+  STRIKETHROUGH_COLOR: 61,
+  UNDERLINE_COLOR: 71,
 };
 
 // Permission flags from Table 22, Section 7.6.3.2 of the PDF specification.
@@ -1284,9 +1291,60 @@ if (
   };
 }
 
+/**
+ * 为颜色值添加透明度
+ * @param {string} color - 颜色值，支持 hex 或 rgb 格式
+ * @param {number} opacity - 透明度，范围 0-1
+ * @returns {string} - 返回 rgba 格式的颜色值
+ */
+function addOpacityToColor(color, opacity) {
+  // 确保 opacity 在 0-1 之间
+  opacity = Math.max(0, Math.min(1, opacity));
+
+  // 处理 hex 格式
+  if (color.startsWith("#")) {
+    // 移除 # 号
+    color = color.slice(1);
+
+    // 处理简写形式 (#RGB)
+    if (color.length === 3) {
+      color = color
+        .split("")
+        .map(c => c + c)
+        .join("");
+    }
+
+    // 转换为 rgb
+    const r = parseInt(color.slice(0, 2), 16);
+    const g = parseInt(color.slice(2, 4), 16);
+    const b = parseInt(color.slice(4, 6), 16);
+
+    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+  }
+
+  // 处理 rgb 格式
+  if (color.startsWith("rgb")) {
+    // 提取 rgb 值
+    const rgbValues = color.match(/\d+/g);
+    if (rgbValues && rgbValues.length >= 3) {
+      const [r, g, b] = rgbValues;
+      return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+    }
+  }
+
+  // 如果已经是 rgba 格式，只更新透明度
+  if (color.startsWith("rgba")) {
+    return color.replace(/[\d.]+\)$/, `${opacity})`);
+  }
+
+  // 如果无法解析，返回原始颜色
+  return color;
+}
+
 export {
   _isValidExplicitDest,
   AbortException,
+  addOpacityToColor,
   AnnotationActionEventType,
   AnnotationBorderStyleType,
   AnnotationEditorParamsType,

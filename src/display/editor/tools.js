@@ -1005,6 +1005,84 @@ class AnnotationEditorUIManager {
     return this.#signatureManager;
   }
 
+  // 下划线选择
+  underlineSelection(methodOfCreation = "") {
+    const selection = document.getSelection();
+    if (!selection || selection.isCollapsed) {
+      return;
+    }
+    const { anchorNode, anchorOffset, focusNode, focusOffset } = selection;
+    const text = selection.toString();
+    const anchorElement = this.#getAnchorElementForSelection(selection);
+    const textLayer = anchorElement.closest(".textLayer");
+    const boxes = this.getSelectionBoxes(textLayer);
+    if (!boxes) {
+      return;
+    }
+    selection.empty();
+
+    const layer = this.#getLayerForTextLayer(textLayer);
+    const isNoneMode = this.#mode === AnnotationEditorType.NONE;
+    const callback = () => {
+      layer?.createAndAddNewEditor({ offsetX: 0, offsetY: 0 }, false, {
+        methodOfCreation,
+        boxes,
+        anchorNode,
+        anchorOffset,
+        focusNode,
+        focusOffset,
+        text,
+      });
+      if (isNoneMode) {
+        this.showAllEditors("underline", true, /* updateButton = */ true);
+      }
+    };
+    if (isNoneMode) {
+      this.switchToMode(AnnotationEditorType.UNDERLINE, callback);
+      this.showAllEditors("underline", true, /* updateButton = */ true);
+    }
+    callback();
+  }
+
+  // 删除线选择
+  strikethroughSelection(methodOfCreation = "") {
+    const selection = document.getSelection();
+    if (!selection || selection.isCollapsed) {
+      return;
+    }
+    const { anchorNode, anchorOffset, focusNode, focusOffset } = selection;
+    const text = selection.toString();
+    const anchorElement = this.#getAnchorElementForSelection(selection);
+    const textLayer = anchorElement.closest(".textLayer");
+    const boxes = this.getSelectionBoxes(textLayer);
+    if (!boxes) {
+      return;
+    }
+    selection.empty();
+
+    const layer = this.#getLayerForTextLayer(textLayer);
+    const isNoneMode = this.#mode === AnnotationEditorType.NONE;
+    const callback = () => {
+      layer?.createAndAddNewEditor({ offsetX: 0, offsetY: 0 }, false, {
+        methodOfCreation,
+        boxes,
+        anchorNode,
+        anchorOffset,
+        focusNode,
+        focusOffset,
+        text,
+      });
+      if (isNoneMode) {
+        this.showAllEditors("strikethrough", true, /* updateButton = */ true);
+      }
+    };
+    if (isNoneMode) {
+      this.switchToMode(AnnotationEditorType.STRIKETHROUGH, callback);
+      this.showAllEditors("strikethrough", true, /* updateButton = */ true);
+    }
+    callback();
+  }
+
   switchToMode(mode, callback) {
     // Switching to a mode can be asynchronous.
     this._eventBus.on("annotationeditormodechanged", callback, {
@@ -1211,6 +1289,8 @@ class AnnotationEditorUIManager {
 
     if (
       this.#mode !== AnnotationEditorType.HIGHLIGHT &&
+      this.#mode !== AnnotationEditorType.STRIKETHROUGH &&
+      this.#mode !== AnnotationEditorType.UNDERLINE &&
       this.#mode !== AnnotationEditorType.NONE
     ) {
       return;
@@ -1219,11 +1299,19 @@ class AnnotationEditorUIManager {
     if (this.#mode === AnnotationEditorType.HIGHLIGHT) {
       this.showAllEditors("highlight", true, /* updateButton = */ true);
     }
+    if (this.#mode === AnnotationEditorType.UNDERLINE) {
+      this.showAllEditors("underline", true, /* updateButton = */ true);
+    }
+    if (this.#mode === AnnotationEditorType.STRIKETHROUGH) {
+      this.showAllEditors("strikethrough", true, /* updateButton = */ true);
+    }
 
     this.#highlightWhenShiftUp = this.isShiftKeyDown;
     if (!this.isShiftKeyDown) {
       const activeLayer =
-        this.#mode === AnnotationEditorType.HIGHLIGHT
+        this.#mode === AnnotationEditorType.HIGHLIGHT ||
+        this.#mode === AnnotationEditorType.STRIKETHROUGH ||
+        this.#mode === AnnotationEditorType.UNDERLINE
           ? this.#getLayerForTextLayer(textLayer)
           : null;
       activeLayer?.toggleDrawing();
@@ -1250,6 +1338,10 @@ class AnnotationEditorUIManager {
   #onSelectEnd(methodOfCreation = "") {
     if (this.#mode === AnnotationEditorType.HIGHLIGHT) {
       this.highlightSelection(methodOfCreation);
+    } else if (this.#mode === AnnotationEditorType.STRIKETHROUGH) {
+      this.strikethroughSelection(methodOfCreation);
+    } else if (this.#mode === AnnotationEditorType.UNDERLINE) {
+      this.underlineSelection(methodOfCreation);
     } else if (this.#enableHighlightFloatingButton) {
       this.#displayHighlightToolbar();
     }
@@ -2546,10 +2638,39 @@ class AnnotationEditorUIManager {
   }
 }
 
+/** 获取左上角的坐标，相对于body根元素而言 */
+function getLeftTopCoord(dom) {
+  if (!dom) {
+    return null;
+  }
+  let actualTop = 0,
+    actualLeft = 0;
+  let current = dom;
+  while (current !== null) {
+    actualTop += current.offsetTop;
+    actualLeft += current.offsetLeft;
+    const style = window.getComputedStyle(current);
+    actualTop += parseFloat(style.marginTop.replace("px", ""));
+    actualTop += parseFloat(style.paddingTop.replace("px", ""));
+    actualTop += parseFloat(style.borderTopWidth.replace("px", ""));
+
+    actualLeft += parseFloat(style.marginLeft.replace("px", ""));
+    actualLeft += parseFloat(style.paddingLeft.replace("px", ""));
+    actualLeft += parseFloat(style.borderLeftWidth.replace("px", ""));
+
+    current = current.offsetParent;
+  }
+  return {
+    x: actualLeft,
+    y: actualTop,
+  };
+}
+
 export {
   AnnotationEditorUIManager,
   bindEvents,
   ColorManager,
   CommandManager,
+  getLeftTopCoord,
   KeyboardManager,
 };
