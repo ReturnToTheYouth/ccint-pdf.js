@@ -35,7 +35,7 @@ import { InkEditor } from "./ink.js";
 import { setLayerDimensions } from "../display_utils.js";
 import { SignatureEditor } from "./signature.js";
 import { StampEditor } from "./stamp.js";
-// import { StrikethroughEditor } from "./strikethrough.js";
+import { StrikethroughEditor } from "./strikethrough.js";
 // import { UnderlineEditor } from "./underline.js";
 
 /**
@@ -103,7 +103,7 @@ class AnnotationEditorLayer {
       HighlightEditor,
       SignatureEditor,
       AreaHighlightEditor,
-      // StrikethroughEditor,
+      StrikethroughEditor,
       // UnderlineEditor,
     ].map(type => [type._editorType, type])
   );
@@ -182,6 +182,8 @@ class AnnotationEditorLayer {
         this.enableClick();
         break;
       case AnnotationEditorType.HIGHLIGHT:
+      case AnnotationEditorType.STRIKETHROUGH:
+      case AnnotationEditorType.UNDERLINE:
         this.enableTextSelection();
         this.togglePointerEvents(false);
         this.disableClick();

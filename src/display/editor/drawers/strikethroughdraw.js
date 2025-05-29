@@ -17,7 +17,7 @@ import { FreeDrawOutline, FreeDrawOutliner } from "./freedraw.js";
 import { Outline } from "./outline.js";
 import { Util } from "../../../shared/util.js";
 // 用于处理高亮区域的轮廓
-class HighlightOutliner {
+class StrikethroughOutliner {
   #box;
 
   #lastPoint;
@@ -170,7 +170,7 @@ class HighlightOutliner {
       }
       outline.push(lastPointX, lastPointY);
     }
-    return new HighlightOutline(outlines, this.#box, this.#lastPoint);
+    return new StrikethroughOutline(outlines, this.#box, this.#lastPoint);
   }
 
   #binarySearch(y) {
@@ -260,7 +260,7 @@ class HighlightOutliner {
 }
 
 // 用于处理高亮区域的轮廓
-class HighlightOutline extends Outline {
+class StrikethroughOutline extends Outline {
   #box;
 
   #outlines;
@@ -319,14 +319,14 @@ class HighlightOutline extends Outline {
   }
 
   get classNamesForOutlining() {
-    return ["highlightOutline"];
+    return ["strikethroughOutline"];
   }
 }
 
 // 处理自由绘制高亮的轮廓生成
-class FreeHighlightOutliner extends FreeDrawOutliner {
+class FreeStrikethroughOutliner extends FreeDrawOutliner {
   newFreeDrawOutline(outline, points, box, scaleFactor, innerMargin, isLTR) {
-    return new FreeHighlightOutline(
+    return new FreeStrikethroughOutliner(
       outline,
       points,
       box,
@@ -337,9 +337,9 @@ class FreeHighlightOutliner extends FreeDrawOutliner {
   }
 }
 
-class FreeHighlightOutline extends FreeDrawOutline {
+class FreeStrikethroughOutline extends FreeDrawOutline {
   newOutliner(point, box, scaleFactor, thickness, isLTR, innerMargin = 0) {
-    return new FreeHighlightOutliner(
+    return new FreeStrikethroughOutline(
       point,
       box,
       scaleFactor,
@@ -350,4 +350,4 @@ class FreeHighlightOutline extends FreeDrawOutline {
   }
 }
 
-export { FreeHighlightOutliner, HighlightOutliner };
+export { FreeStrikethroughOutliner, StrikethroughOutliner };

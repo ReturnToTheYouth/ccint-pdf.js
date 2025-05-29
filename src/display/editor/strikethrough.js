@@ -19,9 +19,10 @@ import {
   Util,
 } from "../../shared/util.js";
 import { AnnotationEditor } from "./editor.js";
-import { Outliner } from "./outliner.js";
 import { ColorPicker } from "./color_picker.js";
+// eslint-disable-next-line sort-imports
 import { bindEvents } from "./tools.js";
+import { StrikethroughOutliner } from "./drawers/strikethroughdraw.js";
 
 /**
  * 下划线
@@ -68,20 +69,21 @@ class StrikethroughEditor extends AnnotationEditor {
 
     this.#createOutlines();
     this.#addToDrawLayer();
-    // 旋转 看最后需求吧，需要旋转则要，不需要则拉倒
-    // this.rotate(this.rotation);
   }
 
   #createOutlines() {
     // 为了计算box的outline
-    const outlinerForBox = new Outliner(this.#boxes, /* borderWidth = */ 0);
+    const outlinerForBox = new StrikethroughOutliner(
+      this.#boxes,
+      /* borderWidth = */ 0
+    );
     const box = outlinerForBox.getBox();
     this.x = box.x;
     this.y = box.y;
     this.width = box.width;
     this.height = box.height;
 
-    const outlinerForOutline = new Outliner(
+    const outlinerForOutline = new StrikethroughOutliner(
       this.#boxes,
       /* borderWidth = */ 0.0025,
       /* innerMargin = */ 0.001,
@@ -314,6 +316,7 @@ class StrikethroughEditor extends AnnotationEditor {
     const { drawLayer } = this.parent;
     // drawLayer.rotate(this.#id, angle);
     drawLayer.rotate(this.#outlineId, angle);
+    // eslint-disable-next-line max-len
     // drawLayer.updateBox(this.#id, StrikethroughEditor.#rotateBbox(this, angle));
     drawLayer.updateBox(
       this.#outlineId,

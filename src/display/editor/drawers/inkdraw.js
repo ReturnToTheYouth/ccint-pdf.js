@@ -16,6 +16,7 @@
 import { MathClamp, Util } from "../../../shared/util.js";
 import { Outline } from "./outline.js";
 
+// // 处理墨水绘制的轮廓生成
 class InkDrawOutliner {
   // The last 3 points of the line.
   #last = new Float64Array(6);
@@ -279,6 +280,7 @@ class InkDrawOutliner {
   }
 }
 
+// 处理墨水绘制的轮廓生成
 class InkDrawOutline extends Outline {
   #bbox;
 

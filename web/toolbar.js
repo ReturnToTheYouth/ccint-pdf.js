@@ -92,6 +92,30 @@ class Toolbar {
         },
       },
       {
+        element: options.editorUnderlineButton,
+        eventName: "switchannotationeditormode",
+        eventDetails: {
+          get mode() {
+            const { classList } = options.editorUnderlineButton;
+            return classList.contains("toggled")
+              ? AnnotationEditorType.NONE
+              : AnnotationEditorType.UNDERLINE;
+          },
+        },
+      },
+      {
+        element: options.editorStrikethroughButton,
+        eventName: "switchannotationeditormode",
+        eventDetails: {
+          get mode() {
+            const { classList } = options.editorStrikethroughButton;
+            return classList.contains("toggled")
+              ? AnnotationEditorType.NONE
+              : AnnotationEditorType.STRIKETHROUGH;
+          },
+        },
+      },
+      {
         element: options.editorHighlightButton,
         eventName: "switchannotationeditormode",
         eventDetails: {

@@ -15,7 +15,7 @@
 
 import { Outline } from "./outline.js";
 import { Util } from "../../../shared/util.js";
-
+// 用于处理自由绘制的轮廓
 class FreeDrawOutliner {
   #box;
 

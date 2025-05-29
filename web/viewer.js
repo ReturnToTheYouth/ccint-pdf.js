@@ -63,6 +63,8 @@ function getViewerConfiguration() {
       editorHighlightColorPicker: document.getElementById(
         "editorHighlightColorPicker"
       ),
+      editorUnderlineButton: document.getElementById("editorUnderline"),
+      editorStrikethroughButton: document.getElementById("editorStrikethrough"),
       editorAreaHighlightButton: document.getElementById(
         "editorAreaHighlightButton"
       ),

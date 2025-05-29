@@ -14,7 +14,7 @@
  */
 
 import { unreachable } from "../../../shared/util.js";
-
+// 基础轮廓类，提供通用的方法
 class Outline {
   static PRECISION = 1e-4;
 
