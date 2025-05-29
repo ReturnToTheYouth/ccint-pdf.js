@@ -532,6 +532,9 @@ class AnnotationEditorLayer {
     if (!editor.isAttachedToDOM) {
       const div = editor.render();
       this.div.append(div);
+      if (editor.postAttach) {
+        editor.postAttach();
+      }
       editor.isAttachedToDOM = true;
     }
 
@@ -758,12 +761,15 @@ class AnnotationEditorLayer {
     const currEditor = this.#pointerDownEditor;
     this.#pointerDownEditor = null;
     const { isMac } = FeatureTest.platform;
-    if (event.button !== 0 || (event.ctrlKey && isMac)) {
+    if (event.button !== 0 || (event.ctrlKey && isMac && !event.release)) {
       // Don't create an editor on right click.
       return;
     }
 
-    if (event.target !== this.div) {
+    if (
+      this.#uiManager.getMode() !== AnnotationEditorType.AREAHIGHLIGHT &&
+      event.target !== this.div
+    ) {
       return;
     }
 

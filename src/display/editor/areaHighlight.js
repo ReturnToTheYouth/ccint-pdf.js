@@ -231,6 +231,50 @@ class AreaHighlightEditor extends AnnotationEditor {
     }
   }
 
+  postAttach() {
+    this.adaptSize();
+  }
+
+  adaptive() {
+    if (this.autoRender) {
+      this.adaptSize();
+    }
+  }
+
+  postConfirm() {
+    const parentWidth = this.div.parentNode.scrollWidth;
+    const parentHeight = this.div.parentNode.scrollHeight;
+    this.width = (1.0 * this.originWidth) / parentWidth;
+    this.height = (1.0 * this.originHeight) / parentHeight;
+    this.adaptSize();
+    this.parent.setSelected(this);
+  }
+
+  adaptSize() {
+    const pWidth = this.div.parentNode.style.width;
+    const pHeight = this.div.parentNode.style.height;
+    // hack式写法，说实话不太好，但是此处也好改
+    let sWidth;
+    let sHeight;
+    if (pWidth.includes("var(--total-scale-factor)")) {
+      sWidth = pWidth.replace(
+        "var(--total-scale-factor)",
+        "var(--total-scale-factor)*" + this.width
+      );
+      sHeight = pHeight.replace(
+        "var(--total-scale-factor)",
+        "var(--total-scale-factor)*" + this.height
+      );
+    } else if (pWidth.includes("calc(")) {
+      sWidth = pWidth.replace("calc(", "calc(" + this.width + "*");
+      sHeight = pHeight.replace("calc(", "calc(" + this.height + "*");
+    } else {
+      throw new Error("无法确定框选的缩放");
+    }
+    this.div.style.height = sHeight;
+    this.div.style.width = sWidth;
+  }
+
   /** @inheritdoc */
   focusin(event) {
     if (!this._focusEventsAllowed) {
