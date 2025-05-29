@@ -92,7 +92,7 @@ class StrikethroughEditor extends AnnotationEditor {
     this.#focusOutlines = outlinerForOutline.getOutlines();
 
     // last-point不好复用是因为在box被我改过了
-    const { lastPoint } = this.#focusOutlines.box;
+    const lastPoint = this.#focusOutlines.lastPoint;
     this.#lastPoint = [
       (lastPoint[0] - this.x) / this.width,
       (lastPoint[1] - this.y) / this.height,

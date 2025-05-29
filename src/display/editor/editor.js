@@ -214,6 +214,55 @@ class AnnotationEditor {
     );
   }
 
+  // 去除重复的盒子 以及对于盒子A包住了盒子B的时候，去除B
+  static deduplicate(boxes) {
+    if (!boxes) {
+      return [];
+    }
+    const nb = [];
+    for (const p of boxes) {
+      nb.push({
+        x: p.x,
+        y: p.y,
+        width: p.width,
+        height: p.height,
+      });
+    }
+    // 先比x，y 小的在前
+    // 然后比宽高，宽的高的在前
+    nb.sort(
+      (a, b) =>
+        a.x - b.x || a.y - b.y || b.width - a.width || b.height - a.height
+    );
+    const ret = [];
+    for (let i = 0; i < nb.length; i++) {
+      const boxi = nb[i];
+      for (let j = i + 1; j < nb.length; j++) {
+        const boxj = nb[j];
+        // 如果i把j包住，那么要把j移除掉
+        if (AnnotationEditor.isBoxIn(boxi, boxj)) {
+          nb.splice(j, 1);
+          j--;
+        }
+      }
+      ret.push(boxi);
+    }
+    return ret;
+  }
+
+  static isBoxIn(boxi, boxj) {
+    const recti = [boxi.x, boxi.y, boxi.x + boxi.width, boxi.y + boxi.height];
+    const rectj = [boxj.x, boxj.y, boxj.x + boxj.width, boxj.y + boxj.height];
+    return (
+      // 左上角的xy要小
+      recti[0] <= rectj[0] &&
+      recti[1] <= rectj[1] &&
+      // 右上角的xy要大
+      recti[2] >= rectj[2] &&
+      recti[3] >= rectj[3]
+    );
+  }
+
   static deleteAnnotationElement(editor) {
     const fakeEditor = new FakeEditor({
       id: editor.parent.getNextId(),
@@ -256,7 +305,7 @@ class AnnotationEditor {
    * @param {number} _type
    * @param {*} _value
    */
-  static updateDefaultParams(_type, _value) {}
+  static updateDefaultParams(_type, _value) { }
 
   /**
    * Get the default properties to set in the UI for this type of editor.
@@ -544,14 +593,14 @@ class AnnotationEditor {
    * @param {number} x - in page coordinates.
    * @param {number} y - in page coordinates.
    */
-  _onTranslating(x, y) {}
+  _onTranslating(x, y) { }
 
   /**
    * Called when the editor has been translated.
    * @param {number} x - in page coordinates.
    * @param {number} y - in page coordinates.
    */
-  _onTranslated(x, y) {}
+  _onTranslated(x, y) { }
 
   get _hasBeenMoved() {
     return (
@@ -765,15 +814,15 @@ class AnnotationEditor {
     const classes = this._willKeepAspectRatio
       ? ["topLeft", "topRight", "bottomRight", "bottomLeft"]
       : [
-          "topLeft",
-          "topMiddle",
-          "topRight",
-          "middleRight",
-          "bottomRight",
-          "bottomMiddle",
-          "bottomLeft",
-          "middleLeft",
-        ];
+        "topLeft",
+        "topMiddle",
+        "topRight",
+        "middleRight",
+        "bottomRight",
+        "bottomMiddle",
+        "bottomLeft",
+        "middleLeft",
+      ];
     const signal = this._uiManager._signal;
     for (const name of classes) {
       const div = document.createElement("div");
@@ -860,7 +909,7 @@ class AnnotationEditor {
   /**
    * Called when the editor has been resized.
    */
-  _onResized() {}
+  _onResized() { }
 
   #addResizeToUndoStack() {
     if (!this.#savedDimensions) {
@@ -1038,7 +1087,7 @@ class AnnotationEditor {
   /**
    * Called when the editor is being resized.
    */
-  _onResizing() {}
+  _onResizing() { }
 
   /**
    * Called when the alt text dialog is closed.
@@ -1382,9 +1431,9 @@ class AnnotationEditor {
     window.addEventListener("blur", pointerUpCallback, { signal });
   }
 
-  _onStartDragging() {}
+  _onStartDragging() { }
 
-  _onStopDragging() {}
+  _onStopDragging() { }
 
   moveInDOM() {
     // Moving the editor in the DOM can be expensive, so we wait a bit before.
@@ -1487,7 +1536,7 @@ class AnnotationEditor {
    * Executed once this editor has been rendered.
    * @param {boolean} focus - true if the editor should be focused.
    */
-  onceAdded(focus) {}
+  onceAdded(focus) { }
 
   /**
    * Check if the editor contains something.
@@ -1566,12 +1615,12 @@ class AnnotationEditor {
    * Rotate the editor when the page is rotated.
    * @param {number} angle
    */
-  rotate(_angle) {}
+  rotate(_angle) { }
 
   /**
    * Resize the editor when the page is resized.
    */
-  resize() {}
+  resize() { }
 
   /**
    * Serialize the editor when it has been deleted.
@@ -1871,24 +1920,24 @@ class AnnotationEditor {
    * @param {number} type
    * @param {*} value
    */
-  updateParams(type, value) {}
+  updateParams(type, value) { }
 
   /**
    * When the user disables the editing mode some editors can change some of
    * their properties.
    */
-  disableEditing() {}
+  disableEditing() { }
 
   /**
    * When the user enables the editing mode some editors can change some of
    * their properties.
    */
-  enableEditing() {}
+  enableEditing() { }
 
   /**
    * The editor is about to be edited.
    */
-  enterInEditMode() {}
+  enterInEditMode() { }
 
   /**
    * @returns {HTMLElement | null} the element requiring an alt text.

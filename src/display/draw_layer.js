@@ -178,6 +178,167 @@ class DrawLayer {
     return id;
   }
 
+  static drawLine(line, y) {
+    const percent = y * 100 + "%";
+    line.setAttribute("x1", "0");
+    line.setAttribute("y1", percent);
+    line.setAttribute("x2", "100%");
+    line.setAttribute("y2", percent);
+    line.setAttribute("stroke-width", "2px");
+    // stroke属性用currentColor
+    line.setAttribute("stroke", "currentColor");
+    // line.setAttribute("style", "stroke: #000;stroke-width: 2px;");
+  }
+
+  // 它的作用是在页面上为高亮（或自由高亮）批注绘制外部轮廓（outline），并且用 SVG 实现了不同的混合模式和遮罩效果。
+  highlightOutline(outlines) {
+    // We cannot draw the outline directly in the SVG for highlights because
+    // it composes with its parent with mix-blend-mode: multiply.
+    // But the outline has a different mix-blend-mode, so we need to draw it in
+    // its own SVG.
+    const id = DrawLayer.#id++;
+    const root = this.#createSVG(outlines.box);
+    root.classList.add("highlightOutline");
+    const defs = DrawLayer._svgFactory.createElement("defs");
+    root.append(defs);
+    const path = DrawLayer._svgFactory.createElement("path");
+    defs.append(path);
+    const pathId = `path_p${this.pageIndex}_${id}`;
+    path.setAttribute("id", pathId);
+    path.setAttribute("d", outlines.toSVGPath());
+    path.setAttribute("vector-effect", "non-scaling-stroke");
+
+    let maskId;
+    if (outlines.free) {
+      root.classList.add("free");
+      const mask = DrawLayer._svgFactory.createElement("mask");
+      defs.append(mask);
+      maskId = `mask_p${this.pageIndex}_${id}`;
+      mask.setAttribute("id", maskId);
+      mask.setAttribute("maskUnits", "objectBoundingBox");
+      const rect = DrawLayer._svgFactory.createElement("rect");
+      mask.append(rect);
+      rect.setAttribute("width", "1");
+      rect.setAttribute("height", "1");
+      rect.setAttribute("fill", "white");
+      const use = DrawLayer._svgFactory.createElement("use");
+      mask.append(use);
+      use.setAttribute("href", `#${pathId}`);
+      use.setAttribute("stroke", "none");
+      use.setAttribute("fill", "black");
+      use.setAttribute("fill-rule", "nonzero");
+      use.classList.add("mask");
+    }
+
+    const use1 = DrawLayer._svgFactory.createElement("use");
+    root.append(use1);
+    use1.setAttribute("href", `#${pathId}`);
+    if (maskId) {
+      use1.setAttribute("mask", `url(#${maskId})`);
+    }
+    const use2 = use1.cloneNode();
+    root.append(use2);
+    use1.classList.add("mainOutline");
+    use2.classList.add("secondaryOutline");
+
+    this.#mapping.set(id, root);
+
+    return id;
+  }
+
+  lineOutline(params) {
+    // 和上面那个差不多，只不过要加个clipPath，把轮廓绘制出来
+    const { outlines, box } = params;
+    const id = DrawLayer.#id++;
+    const root = this.#createSVG(box);
+    root.classList.add("highlightOutline");
+    const defs = DrawLayer._svgFactory.createElement("defs");
+    root.append(defs);
+    const path = DrawLayer._svgFactory.createElement("path");
+    defs.append(path);
+    const pathId = `path_p${this.pageIndex}_${id}`;
+    path.setAttribute("id", pathId);
+    path.setAttribute(
+      "d",
+      DrawLayer.#extractPathFromHighlightOutlines(outlines)
+    );
+    path.setAttribute("vector-effect", "non-scaling-stroke");
+
+    // 绘制clip-path 主要是为下划线和删除线 做服务
+    const clipPath = DrawLayer._svgFactory.createElement("clipPath");
+    defs.append(clipPath);
+    const clipPathId = `clip_${pathId}`;
+    clipPath.setAttribute("id", clipPathId);
+    // 使用包含他的元素作为边界
+    clipPath.setAttribute("clipPathUnits", "objectBoundingBox");
+    const clipPathUse = DrawLayer._svgFactory.createElement("use");
+    clipPath.append(clipPathUse);
+    clipPathUse.setAttribute("href", `#${pathId}`);
+    clipPathUse.classList.add("clip");
+
+    const use1 = DrawLayer._svgFactory.createElement("use");
+    root.append(use1);
+    use1.setAttribute("href", `#${pathId}`);
+    const use2 = use1.cloneNode();
+    root.append(use2);
+    use1.classList.add("mainOutline");
+    use2.classList.add("secondaryOutline");
+
+    this.#mapping.set(id, root);
+
+    return { id, clipPathId: `url(#${clipPathId})` };
+  }
+
+  static #extractPathFromHighlightOutlines(polygons) {
+    const buffer = [];
+    for (const polygon of polygons) {
+      let [prevX, prevY] = polygon;
+      buffer.push(`M${prevX} ${prevY}`);
+      for (let i = 2; i < polygon.length; i += 2) {
+        const x = polygon[i];
+        const y = polygon[i + 1];
+        if (x === prevX) {
+          buffer.push(`V${y}`);
+          prevY = y;
+        } else if (y === prevY) {
+          buffer.push(`H${x}`);
+          prevX = x;
+        }
+      }
+      buffer.push("Z");
+    }
+    return buffer.join(" ");
+  }
+
+  // percent表示位置
+  drawLine(boxes, percent) {
+    // box index
+    const ids = [];
+    for (const bdx in boxes) {
+      const box = boxes[bdx];
+      const id = DrawLayer.#id++;
+      const root = this.#createSVG(box);
+      root.classList.add("highlight");
+      // 去除掉不需要的box
+      root.removeAttribute("viewBox");
+      const defs = DrawLayer._svgFactory.createElement("defs");
+      root.append(defs);
+      const line = DrawLayer._svgFactory.createElement("line");
+      defs.append(line);
+      const lineId = `line_p${this.pageIndex}_${id}`;
+      line.setAttribute("id", lineId);
+      DrawLayer.drawLine(line, percent);
+      const use = DrawLayer._svgFactory.createElement("use");
+      root.append(use);
+      // 默认为黑色
+      use.setAttribute("style", "color: #000");
+      use.setAttribute("href", `#${lineId}`);
+      ids.push(id);
+      this.#mapping.set(id, root);
+    }
+    return ids;
+  }
+
   finalizeDraw(id, properties) {
     this.#toUpdate.delete(id);
     this.updateProperties(id, properties);
