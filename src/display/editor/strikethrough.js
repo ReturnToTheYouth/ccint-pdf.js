@@ -202,7 +202,9 @@ class StrikethroughEditor extends AnnotationEditor {
 
   /** @inheritdoc */
   onceAdded() {
-    this.parent.addUndoableEditor(this);
+    if (!this.annotationElementId) {
+      this.parent.addUndoableEditor(this);
+    }
     if (!this.fromCommand) {
       this.div.focus();
     }
@@ -261,7 +263,7 @@ class StrikethroughEditor extends AnnotationEditor {
     for (const id of this.#ids) {
       this.parent.drawLayer.remove(id);
     }
-    this.ids = null;
+    this.#ids = null;
     this.parent.drawLayer.remove(this.#outlineId);
     this.#outlineId = null;
   }

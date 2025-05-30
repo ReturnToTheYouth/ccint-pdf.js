@@ -345,7 +345,7 @@ class UnderlineEditor extends AnnotationEditor {
     for (const id of this.#ids) {
       this.parent.drawLayer.remove(id);
     }
-    this.ids = null;
+    this.#ids = null;
     this.parent.drawLayer.remove(this.#outlineId);
     this.#outlineId = null;
   }
