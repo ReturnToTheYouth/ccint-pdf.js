@@ -369,10 +369,21 @@ class DrawLayer {
     use.setAttribute("style", `color: ${color}`);
   }
 
+  /**
+   * @method updateProperties
+   * @description 更新元素的属性
+   * @param {Element | number} elementOrId 元素或元素ID
+   * @param {Object} properties 属性对象
+   * @returns {void}
+   */
   updateProperties(elementOrId, properties) {
     if (!properties) {
       return;
     }
+    // root: 根元素属性
+    // bbox: 边界框属性
+    // rootClass: 类名属性
+    // path: 路径属性
     const { root, bbox, rootClass, path } = properties;
     const element =
       typeof elementOrId === "number"
@@ -387,12 +398,15 @@ class DrawLayer {
     if (bbox) {
       DrawLayer.#setBox(element, bbox);
     }
+    // 更新类名
     if (rootClass) {
       const { classList } = element;
       for (const [className, value] of Object.entries(rootClass)) {
         classList.toggle(className, value);
       }
     }
+
+    // 更新路径
     if (path) {
       const defs = element.firstChild;
       const pathElement = defs.firstChild;
@@ -411,6 +425,14 @@ class DrawLayer {
     layer.#parent.append(root);
     this.#mapping.delete(id);
     layer.#mapping.set(id, root);
+  }
+
+  addClass(id, className) {
+    this.#mapping.get(id).classList.add(className);
+  }
+
+  removeClass(id, className) {
+    this.#mapping.get(id).classList.remove(className);
   }
 
   remove(id) {

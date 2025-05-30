@@ -272,6 +272,21 @@ class StrikethroughEditor extends AnnotationEditor {
 
     // 第二个是画轮廓 画轮廓的要留着，画本体的要改掉
     const ret = parent.drawLayer.lineOutline(this.#focusOutlines);
+    // const box = this.#focusOutlines.box;
+    // const floatBox = new Float32Array([box.x, box.y, box.width, box.height]);
+    // const ret = parent.drawLayer.drawOutline(
+    //   {
+    //     rootClass: {
+    //       highlightOutline: true,
+    //       free: false,
+    //     },
+    //     bbox: floatBox,
+    //     path: {
+    //       d: this.#focusOutlines.toSVGPath(),
+    //     },
+    //   },
+    //   /* mustRemoveSelfIntersections = */ false
+    // );
     this.#outlineId = ret.id;
     this.#clipPathId = ret.clipPathId;
     if (this.#strikethroughDiv) {

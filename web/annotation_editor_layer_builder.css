@@ -162,7 +162,7 @@
 }
 
 .annotationEditorLayer
-  :is(.freeTextEditor, .inkEditor, .stampEditor, .signatureEditor, .areaHighlightEditor, .strikethroughEditor, .underlineEditor) {
+  :is(.freeTextEditor, .inkEditor, .stampEditor, .signatureEditor, .areaHighlightEditor) {
   position: absolute;
   background: transparent;
   z-index: 1;
