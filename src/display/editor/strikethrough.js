@@ -210,8 +210,11 @@ class StrikethroughEditor extends AnnotationEditor {
 
   /** @inheritdoc */
   remove(forHide = false) {
-    super.remove(forHide);
     this.#cleanDrawLayer();
+    this._reportTelemetry({
+      action: "deleted",
+    });
+    super.remove();
   }
 
   /** @inheritdoc */
@@ -378,6 +381,9 @@ class StrikethroughEditor extends AnnotationEditor {
   /** @inheritdoc */
   unselect() {
     super.unselect();
+    if (!this.#outlineId) {
+      return;
+    }
     this.parent?.drawLayer.removeClass(this.#outlineId, "selected");
   }
 
