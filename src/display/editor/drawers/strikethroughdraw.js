@@ -15,7 +15,7 @@
 
 import { FreeDrawOutliner } from "./freedraw.js";
 import { Outline } from "./outline.js";
-import { Util } from "../../../shared/util.js";
+// import { Util } from "../../../shared/util.js";
 // 用于处理高亮区域的轮廓
 class StrikethroughOutliner {
   #box;
@@ -327,6 +327,10 @@ class StrikethroughOutline extends Outline {
 
   get box() {
     return this.#box;
+  }
+
+  get outlines() {
+    return this.#outlines;
   }
 
   get classNamesForOutlining() {
