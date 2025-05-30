@@ -1803,7 +1803,12 @@ class AnnotationEditorUIManager {
     this.#mode = mode;
     if (mode === AnnotationEditorType.NONE) {
       this.setEditingState(false);
-      this.#disableAll();
+      // this.#disableAll();
+
+      // 不禁止了，默认情况下可以选择所有模式
+      for (const layer of this.#allLayers.values()) {
+        layer.updateMode(mode);
+      }
 
       this._editorUndoBar?.hide();
 
