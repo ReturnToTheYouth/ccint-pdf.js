@@ -63,10 +63,27 @@ class DrawLayer {
     style.height = `${100 * height}%`;
   }
 
+  static #setBoxCopy(element, { x = 0, y = 0, width = 1, height = 1 } = {}) {
+    const { style } = element;
+    style.top = `${100 * y}%`;
+    style.left = `${100 * x}%`;
+    style.width = `${100 * width}%`;
+    style.height = `${100 * height}%`;
+  }
+
   #createSVG() {
     const svg = DrawLayer._svgFactory.create(1, 1, /* skipDimensions = */ true);
     this.#parent.append(svg);
     svg.setAttribute("aria-hidden", true);
+
+    return svg;
+  }
+
+  #createSVGCopy(box) {
+    const svg = DrawLayer._svgFactory.create(1, 1, /* skipDimensions = */ true);
+    this.#parent.append(svg);
+    svg.setAttribute("aria-hidden", true);
+    DrawLayer.#setBoxCopy(svg, box);
 
     return svg;
   }
@@ -346,7 +363,7 @@ class DrawLayer {
     for (const bdx in boxes) {
       const box = boxes[bdx];
       const id = DrawLayer.#id++;
-      const root = this.#createSVG(box);
+      const root = this.#createSVGCopy(box);
       root.classList.add("highlight");
       // 去除掉不需要的box
       root.removeAttribute("viewBox");
