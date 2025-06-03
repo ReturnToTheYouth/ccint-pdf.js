@@ -839,15 +839,15 @@ function createBuildNumber(done) {
   exec(
     "git log --format=oneline " + config.baseVersion + "..",
     function (err, stdout, stderr) {
-      let buildNumber = 0;
-      if (!err) {
-        // Build number is the number of commits since base version
-        buildNumber = stdout ? stdout.match(/\n/g).length : 0;
-      } else {
-        console.log(
-          "This is not a Git repository; using default build number."
-        );
-      }
+      const buildNumber = 133;
+      // if (!err) {
+      //   // Build number is the number of commits since base version
+      //   buildNumber = stdout ? stdout.match(/\n/g).length : 0;
+      // } else {
+      //   console.log(
+      //     "This is not a Git repository; using default build number."
+      //   );
+      // }
 
       console.log("Extension build number: " + buildNumber);
 
@@ -2282,7 +2282,7 @@ gulp.task(
 function packageJson() {
   const VERSION = getVersionJSON().version;
 
-  const DIST_NAME = "pdfjs-dist";
+  const DIST_NAME = "my-pdfjs-dist";
   const DIST_DESCRIPTION = "Generic build of Mozilla's PDF.js library.";
   const DIST_KEYWORDS = ["Mozilla", "pdf", "pdf.js"];
   const DIST_HOMEPAGE = "https://mozilla.github.io/pdf.js/";
