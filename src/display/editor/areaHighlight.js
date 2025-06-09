@@ -281,9 +281,9 @@ class AreaHighlightEditor extends AnnotationEditor {
       return;
     }
     super.focusin(event);
-    if (event.target !== this.editorDiv) {
-      this.editorDiv.focus();
-    }
+    // if (event.target !== this.editorDiv) {
+    //   this.editorDiv.focus();
+    // }
   }
 
   /** @inheritdoc */

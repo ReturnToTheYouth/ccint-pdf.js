@@ -398,6 +398,18 @@ class AnnotationEditorLayer {
     }
   }
 
+  enableBlankUnselect() {
+    this.#textLayer.div.addEventListener("pointerdown", () =>
+      this.#uiManager.unselectAll()
+    );
+  }
+
+  disableBlankUnselect() {
+    this.#textLayer.div.removeEventListener("pointerdown", () =>
+      this.#uiManager.unselectAll()
+    );
+  }
+
   #textLayerPointerDown(event) {
     // Unselect all the editors in order to let the user select some text
     // without being annoyed by an editor toolbar.

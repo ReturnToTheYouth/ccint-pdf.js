@@ -1817,6 +1817,8 @@ class AnnotationEditorUIManager {
     await this.#enableAll();
     this.unselectAll();
     for (const layer of this.#allLayers.values()) {
+      // 自定义的点击事件取消
+      layer.disableBlankUnselect();
       layer.updateMode(mode);
     }
     if (!editId) {
@@ -1960,6 +1962,7 @@ class AnnotationEditorUIManager {
       this.#isEnabled = false;
       // ----层模式正常取消
       for (const layer of this.#allLayers.values()) {
+        layer.enableBlankUnselect();
         layer.disable();
       }
       // ---editro enable可以编辑
