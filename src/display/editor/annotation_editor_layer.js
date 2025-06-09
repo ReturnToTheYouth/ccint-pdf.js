@@ -299,7 +299,8 @@ class AnnotationEditorLayer {
     const changedAnnotations = new Map();
     const resetAnnotations = new Map();
     for (const editor of this.#editors.values()) {
-      editor.disableEditing();
+      // ---- editor仍然可以编辑
+      //  editor.disableEditing();
       if (!editor.annotationElementId) {
         continue;
       }

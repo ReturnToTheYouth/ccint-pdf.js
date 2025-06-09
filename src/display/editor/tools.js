@@ -44,17 +44,17 @@ function bindEvents(obj, element, names) {
 
 class AnnotationEditorHook {
   // new完对象后调的，不是所有的组件都有
-  postConstruct = e => { };
+  postConstruct = e => {};
 
   // 在对editor经过一轮调整之后做的，
   // 只有那种绘制完了还会继续调整的批注才有
-  postModifyConfirm = e => { };
+  postModifyConfirm = e => {};
 
   // 删除一个对象之后调用的
-  postDestory = e => { };
+  postDestory = e => {};
 
   // 初始化之后调用的，不是所有的都有，目前只有AreaHighlightEditor有
-  postInitialize = e => { };
+  postInitialize = e => {};
 }
 
 /**
@@ -953,9 +953,9 @@ class AnnotationEditorUIManager {
       "hcmFilter",
       this.#pageColors
         ? this.#filterFactory.addHCMFilter(
-          this.#pageColors.foreground,
-          this.#pageColors.background
-        )
+            this.#pageColors.foreground,
+            this.#pageColors.background
+          )
         : "none"
     );
   }
@@ -974,10 +974,10 @@ class AnnotationEditorUIManager {
       "highlightColors",
       this.#highlightColors
         ? new Map(
-          this.#highlightColors
-            .split(",")
-            .map(pair => pair.split("=").map(x => x.trim()))
-        )
+            this.#highlightColors
+              .split(",")
+              .map(pair => pair.split("=").map(x => x.trim()))
+          )
         : null
     );
   }
@@ -1336,8 +1336,8 @@ class AnnotationEditorUIManager {
     if (!this.isShiftKeyDown) {
       const activeLayer =
         this.#mode === AnnotationEditorType.HIGHLIGHT ||
-          this.#mode === AnnotationEditorType.STRIKETHROUGH ||
-          this.#mode === AnnotationEditorType.UNDERLINE
+        this.#mode === AnnotationEditorType.STRIKETHROUGH ||
+        this.#mode === AnnotationEditorType.UNDERLINE
           ? this.#getLayerForTextLayer(textLayer)
           : null;
       activeLayer?.toggleDrawing();
@@ -1803,12 +1803,7 @@ class AnnotationEditorUIManager {
     this.#mode = mode;
     if (mode === AnnotationEditorType.NONE) {
       this.setEditingState(false);
-      // this.#disableAll();
-
-      // 不禁止了，默认情况下可以选择所有模式
-      for (const layer of this.#allLayers.values()) {
-        layer.updateMode(mode);
-      }
+      this.#disableAll();
 
       this._editorUndoBar?.hide();
 
@@ -1963,12 +1958,14 @@ class AnnotationEditorUIManager {
     this.unselectAll();
     if (this.#isEnabled) {
       this.#isEnabled = false;
+      // ----层模式正常取消
       for (const layer of this.#allLayers.values()) {
         layer.disable();
       }
-      for (const editor of this.#allEditors.values()) {
-        editor.disable();
-      }
+      // ---editro enable可以编辑
+      // for (const editor of this.#allEditors.values()) {
+      //   editor.disable();
+      // }
     }
   }
 
