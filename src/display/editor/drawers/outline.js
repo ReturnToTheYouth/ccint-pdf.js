@@ -98,6 +98,11 @@ class Outline {
     }
   }
 
+  /**
+   * createBezierPoints 根据三点生成贝塞尔曲线的控制点
+   * 返回： 一个长度为6的数组，依次是3个点的坐标（每个点2个值）
+   * 以第2点为基准，结合前后两个点，计算出贝塞尔曲线的两个控制点和一个终点，使曲线更加平滑自然。
+   */
   static createBezierPoints(x1, y1, x2, y2, x3, y3) {
     return [
       (x1 + 5 * x2) / 6,

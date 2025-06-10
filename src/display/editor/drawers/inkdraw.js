@@ -449,6 +449,63 @@ class InkDrawOutline extends Outline {
     };
   }
 
+  /**
+---
+
+### 1. 方法签名与参数
+
+```js
+static deserialize(
+    pageX,
+    pageY,
+    pageWidth,
+    pageHeight,
+    innerMargin,
+    { paths: { lines, points }, rotation, thickness }
+)
+```
+- **pageX, pageY, pageWidth, pageHeight**：PDF 页面的位置和尺寸参数
+- **innerMargin**：内部边距
+- **paths**：包含 `lines`（贝塞尔曲线数据）和 `points`（原始点数据）
+- **rotation**：页面旋转角度
+- **thickness**：线条粗细
+
+---
+
+### 2. 坐标变换准备
+
+根据页面的旋转角度（0/90/180/270），设置不同的坐标变换函数（`rescaleFn`）和参数（`tx, ty, sx, sy`），用于后续将注释数据从页面坐标系转换为标准坐标系。
+
+---
+
+### 3. 数据重建（lines 和 points）
+
+- 如果 `lines` 不存在，则根据 `points` 重新生成 `lines` 数据。
+- 对于每一组点：
+  - 如果只有2个点，直接生成一条线。
+  - 如果有4个点，生成一条包含两个端点的线。
+  - 如果有更多点，则通过循环，使用 `Outline.createBezierPoints` 方法将点转换为平滑的贝塞尔曲线控制点，生成更平滑的线条数据。
+
+---
+
+### 4. 坐标变换
+
+- 对每一条线和点，使用前面准备好的 `rescaleFn` 进行坐标变换，使其适应当前页面的缩放、旋转等。
+
+---
+
+### 5. 构建最终对象
+
+- 创建一个新的 `outlines` 实例（通常是 `InkOutline` 或类似的类）。
+- 调用其 `build` 方法，将处理好的线条、页面参数等传入，生成最终可用于渲染的对象。
+
+---
+
+### 6. 返回结果
+
+- 返回反序列化后的 `outlines` 对象，供后续渲染或编辑使用。
+---
+   */
   static deserialize(
     pageX,
     pageY,
