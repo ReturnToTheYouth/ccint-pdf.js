@@ -31,7 +31,7 @@ class InkDrawingOptions extends DrawingOptions {
 
     super.updateProperties({
       fill: "none",
-      stroke: AnnotationEditor._defaultLineColor,
+      stroke: "#FF7255", // AnnotationEditor._defaultLineColor,
       "stroke-opacity": 1,
       "stroke-width": 1,
       "stroke-linecap": "round",

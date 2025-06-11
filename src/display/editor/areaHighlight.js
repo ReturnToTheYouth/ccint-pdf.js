@@ -24,7 +24,7 @@ class AreaHighlightEditor extends AnnotationEditor {
 
   static _internalPadding = 0;
 
-  static _defaultColor = "#FFFF98";
+  static _defaultColor = "#F9F936";
 
   static _defaultOpacity = 0.5;
 

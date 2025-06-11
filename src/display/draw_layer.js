@@ -347,8 +347,8 @@ class DrawLayer {
       DrawLayer.drawLine(line, percent);
       const use = DrawLayer._svgFactory.createElement("use");
       root.append(use);
-      // 默认为黑色
-      use.setAttribute("style", "color: #000");
+      // 默认为红色
+      use.setAttribute("style", "color: #FF0000");
       use.setAttribute("href", `#${lineId}`);
       ids.push(id);
       this.#mapping.set(id, root);

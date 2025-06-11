@@ -49,7 +49,7 @@ class StrikethroughEditor extends AnnotationEditor {
 
   #colorPicker = null;
 
-  color = "#000";
+  color = "#FF0000";
 
   static _l10nPromise;
 

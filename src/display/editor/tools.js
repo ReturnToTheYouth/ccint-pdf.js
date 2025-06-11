@@ -1895,11 +1895,9 @@ class AnnotationEditorUIManager {
         this.showAllEditors("highlight", value);
         break;
     }
-
     for (const editor of this.#selectedEditors) {
       editor.updateParams(type, value);
     }
-
     for (const editorType of this.#editorTypes) {
       editorType.updateDefaultParams(type, value);
     }
