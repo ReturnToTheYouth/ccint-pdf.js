@@ -79,6 +79,9 @@ const AnnotationEditorType = {
   AREAHIGHLIGHT: 18,
   UNDERLINE: 22,
   STRIKETHROUGH: 26,
+  // 特别添加：橡皮擦模式以做区分。依旧在编辑模式中，但是不进行单独绘制
+  // 逻辑代码在vue中自己写
+  ERASER: 27,
 };
 
 const AnnotationEditorParamsType = {

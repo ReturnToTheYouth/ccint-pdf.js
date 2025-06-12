@@ -177,6 +177,7 @@ class AnnotationEditorLayer {
         this.disableClick();
         return;
       case AnnotationEditorType.INK:
+      case AnnotationEditorType.ERASER:
         this.disableTextSelection();
         this.togglePointerEvents(true);
         this.enableClick();
