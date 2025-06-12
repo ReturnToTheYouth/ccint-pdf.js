@@ -992,10 +992,6 @@ class AnnotationEditorUIManager {
     );
   }
 
-  getId() {
-    return this.#idManager.id;
-  }
-
   // 设置id起始值
   setId(id) {
     this.#idManager.setId(id);

@@ -1109,7 +1109,13 @@ class AnnotationEditor {
     if (this.#altText) {
       await this._editToolbar.addAltText(this.#altText);
     }
-
+    // eslint-disable-next-line no-console
+    console.log("addEditToolbar", this._editToolbar.toolbar);
+    this._uiManager._eventBus.dispatch("editortoolbaradded", {
+      source: this,
+      parentDiv: this.div,
+      editToolbarDiv: this._editToolbar.toolbar,
+    });
     return this._editToolbar;
   }
 
@@ -1167,42 +1173,6 @@ class AnnotationEditor {
 
   get guessedAltText() {
     return this.#altText?.guessedText;
-  }
-
-  // 去除重复的盒子 以及对于盒子A包住了盒子B的时候，去除B
-  static deduplicate(boxes) {
-    if (!boxes) {
-      return [];
-    }
-    const nb = [];
-    for (const p of boxes) {
-      nb.push({
-        x: p.x,
-        y: p.y,
-        width: p.width,
-        height: p.height,
-      });
-    }
-    // 先比x，y 小的在前
-    // 然后比宽高，宽的高的在前
-    nb.sort(
-      (a, b) =>
-        a.x - b.x || a.y - b.y || b.width - a.width || b.height - a.height
-    );
-    const ret = [];
-    for (let i = 0; i < nb.length; i++) {
-      const boxi = nb[i];
-      for (let j = i + 1; j < nb.length; j++) {
-        const boxj = nb[j];
-        // 如果i把j包住，那么要把j移除掉
-        if (AnnotationEditor.isBoxIn(boxi, boxj)) {
-          nb.splice(j, 1);
-          j--;
-        }
-      }
-      ret.push(boxi);
-    }
-    return ret;
   }
 
   async setGuessedAltText(text) {
@@ -1923,6 +1893,7 @@ class AnnotationEditor {
    */
   select() {
     this.makeResizable();
+    console.log("select", this.div);
     this.div?.classList.add("selectedEditor");
     if (!this._editToolbar) {
       this.addEditToolbar().then(() => {

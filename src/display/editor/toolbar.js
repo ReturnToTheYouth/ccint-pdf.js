@@ -78,6 +78,10 @@ class EditorToolbar {
     return this.#toolbar;
   }
 
+  get toolbar() {
+    return this.#toolbar;
+  }
+
   static #pointerDown(e) {
     e.stopPropagation();
   }
