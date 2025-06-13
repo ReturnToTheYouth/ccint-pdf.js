@@ -155,6 +155,10 @@ class AnnotationEditorLayer {
     );
   }
 
+  getEditorById(id) {
+    return this.#editors.get(id);
+  }
+
   /**
    * Update the toolbar if it's required to reflect the tool currently used.
    * @param {number} mode
