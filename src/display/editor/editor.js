@@ -1893,7 +1893,6 @@ class AnnotationEditor {
    */
   select() {
     this.makeResizable();
-    console.log("select", this.div);
     this.div?.classList.add("selectedEditor");
     if (!this._editToolbar) {
       this.addEditToolbar().then(() => {
@@ -1907,6 +1906,15 @@ class AnnotationEditor {
       return;
     }
     this._editToolbar?.show();
+    this.#altText?.toggleAltTextBadge(false);
+  }
+
+  /**
+   * 选中编辑器，但是不弹出toolbar
+   */
+  selectWithoutToolbar() {
+    this.makeResizable();
+    this.div?.classList.add("selectedEditor");
     this.#altText?.toggleAltTextBadge(false);
   }
 
