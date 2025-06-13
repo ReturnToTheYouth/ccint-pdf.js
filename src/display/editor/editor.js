@@ -1907,6 +1907,11 @@ class AnnotationEditor {
     }
     this._editToolbar?.show();
     this.#altText?.toggleAltTextBadge(false);
+    this._uiManager._eventBus.dispatch("editortoolbarshow", {
+      source: this,
+      parentDiv: this.div,
+      editToolbarDiv: this._editToolbar.toolbar,
+    });
   }
 
   /**
@@ -1933,6 +1938,11 @@ class AnnotationEditor {
     }
     this._editToolbar?.hide();
     this.#altText?.toggleAltTextBadge(true);
+    this._uiManager._eventBus.dispatch("editortoolbarhide", {
+      source: this,
+      parentDiv: this.div,
+      editToolbarDiv: this._editToolbar.toolbar,
+    });
   }
 
   /**

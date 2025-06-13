@@ -191,6 +191,10 @@ class HighlightToolbar {
     this.#uiManager = uiManager;
   }
 
+  get uiManager() {
+    return this.#uiManager;
+  }
+
   #render() {
     const editToolbar = (this.#toolbar = document.createElement("div"));
     editToolbar.className = "editToolbar";
@@ -239,10 +243,21 @@ class HighlightToolbar {
     parent.append(this.#toolbar);
     style.insetInlineEnd = `${100 * x}%`;
     style.top = `calc(${100 * y}% + var(--editor-toolbar-vert-offset))`;
+    this.#uiManager._eventBus.dispatch("annotationtoolbartoolbaradded", {
+      source: this,
+      parentDiv: parent,
+      editToolbarDiv: this.#toolbar,
+    });
+    console.log('annotationtoolbartoolbaradded', this);
   }
 
   hide() {
+    debugger
     this.#toolbar.remove();
+    console.log('annotationtoolbartoolbarhide', this);
+    this.#uiManager._eventBus.dispatch("annotationtoolbartoolbarhide", {
+      source: this,
+    });
   }
 
   #addHighlightButton() {
