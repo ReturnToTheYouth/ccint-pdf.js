@@ -19,15 +19,15 @@
 
 :root {
   --outline-width: 2px;
-  --outline-color: #0060df;
+  --outline-color: #00b796;
   --outline-around-width: 1px;
-  --outline-around-color: #f0f0f4;
+  --outline-around-color: #00b796;
   --hover-outline-around-color: var(--outline-around-color);
   --focus-outline: solid var(--outline-width) var(--outline-color);
   --unfocus-outline: solid var(--outline-width) transparent;
   --focus-outline-around: solid var(--outline-around-width)
     var(--outline-around-color);
-  --hover-outline-color: #8f8f9d;
+  --hover-outline-color: #00b796;
   --hover-outline: solid var(--outline-width) var(--hover-outline-color);
   --hover-outline-around: solid var(--outline-around-width)
     var(--hover-outline-around-color);
