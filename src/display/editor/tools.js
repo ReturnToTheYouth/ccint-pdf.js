@@ -1839,6 +1839,28 @@ class AnnotationEditorUIManager {
     this.#updateModeCapability.resolve();
   }
 
+  async switchEditor(mode, editId = null) {
+    this.setEditingState(true);
+    await this.#enableAll();
+    this.unselectAll();
+    for (const layer of this.#allLayers.values()) {
+      // 自定义的点击事件取消
+      layer.disableBlankUnselect();
+      layer.updateMode();
+    }
+    for (const editor of this.#allEditors.values()) {
+      if (editor.annotationElementId === editId) {
+        this.setSelected(editor);
+        editor.enterInEditMode();
+      } else {
+        editor.unselect();
+      }
+    }
+    this._eventBus.dispatch("resize", {
+      source: this,
+    });
+  }
+
   addNewEditorFromKeyboard() {
     if (this.currentLayer.canCreateNewEmptyEditor()) {
       this.currentLayer.addNewEditor();

@@ -725,8 +725,15 @@ class AnnotationElement {
       annotationEditorType: mode,
       data: { id: editId },
     } = this;
-    this.container.addEventListener("dblclick", () => {
-      this.linkService.eventBus?.dispatch("switchannotationeditormode", {
+    // this.container.addEventListener("dblclick", () => {
+    //   this.linkService.eventBus?.dispatch("switchannotationeditormode", {
+    //     source: this,
+    //     mode,
+    //     editId,
+    //   });
+    // });
+    this.container.addEventListener("click", () => {
+      this.linkService.eventBus?.dispatch("switchactiveeditor", {
         source: this,
         mode,
         editId,

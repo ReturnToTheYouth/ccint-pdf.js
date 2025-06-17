@@ -1935,6 +1935,13 @@ class AnnotationEditor {
         preventScroll: true,
       });
     }
+    if (this._editToolbar && this._editToolbar.toolbar) {
+      this._uiManager._eventBus.dispatch("editortoolbarhide", {
+        source: this,
+        parentDiv: this.div,
+        editToolbarDiv: this._editToolbar.toolbar,
+      });
+    }
     this._editToolbar?.hide();
     this.#altText?.toggleAltTextBadge(true);
     if (this._editToolbar) {

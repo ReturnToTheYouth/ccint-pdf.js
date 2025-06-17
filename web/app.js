@@ -1979,6 +1979,11 @@ const PDFViewerApplication = {
       evt => (pdfViewer.annotationEditorMode = evt),
       opts
     );
+    eventBus._on(
+      "switchactiveeditor",
+      evt => (pdfViewer.switchActiveEditor = evt),
+      opts
+    );
     eventBus._on("print", this.triggerPrinting.bind(this), opts);
     eventBus._on("download", this.downloadOrSave.bind(this), opts);
     eventBus._on("firstpage", () => (this.page = 1), opts);

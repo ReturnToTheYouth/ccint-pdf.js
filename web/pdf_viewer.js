@@ -221,6 +221,8 @@ class PDFViewer {
 
   #annotationEditorMode = AnnotationEditorType.NONE;
 
+  #switchActiveEditor = AnnotationEditorType.NONE;
+
   #annotationEditorUIManager = null;
 
   #annotationMode = AnnotationMode.ENABLE_FORMS;
@@ -316,6 +318,8 @@ class PDFViewer {
     this.#annotationMode =
       options.annotationMode ?? AnnotationMode.ENABLE_FORMS;
     this.#annotationEditorMode =
+      options.annotationEditorMode ?? AnnotationEditorType.NONE;
+    this.#switchActiveEditor =
       options.annotationEditorMode ?? AnnotationEditorType.NONE;
     this.#annotationEditorHighlightColors =
       options.annotationEditorHighlightColors || null;
@@ -2469,6 +2473,25 @@ class PDFViewer {
       }
     }
     updater();
+  }
+
+  get switchActiveEditor() {
+    return this.#switchActiveEditor;
+  }
+
+  set switchActiveEditor({ mode, editId = null, isFromKeyboard = false }) {
+    const update = async () => {
+      this.#cleanupSwitchAnnotationEditorMode();
+      await this.#annotationEditorUIManager.switchEditor(
+        mode,
+        editId,
+        isFromKeyboard
+      );
+    };
+    for (const pageView of this._pages) {
+      pageView.toggleEditingMode(true);
+    }
+    update();
   }
 
   refresh(noUpdate = false, updateArgs = Object.create(null)) {
