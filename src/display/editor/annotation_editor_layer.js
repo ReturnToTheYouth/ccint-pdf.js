@@ -212,17 +212,16 @@ class AnnotationEditorLayer {
 
     const { classList } = this.div;
     // 橡皮擦模式下，隐藏编辑器
-    if (mode === AnnotationEditorType.ERASER) {
-      // 添加一个类
-      classList.add("eraserEditing");
-    } else {
-      for (const editorType of AnnotationEditorLayer.#editorTypes.values()) {
-        classList.toggle(
-          `${editorType._type}Editing`,
-          mode === editorType._editorType
-        );
-      }
+
+    for (const editorType of AnnotationEditorLayer.#editorTypes.values()) {
+      classList.toggle(
+        `${editorType._type}Editing`,
+        mode === editorType._editorType
+      );
     }
+
+    // 添加橡皮擦类
+    classList.toggle("eraserEditing", mode === AnnotationEditorType.ERASER);
 
     this.div.hidden = false;
   }
