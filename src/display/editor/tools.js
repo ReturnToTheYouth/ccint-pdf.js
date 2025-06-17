@@ -1255,7 +1255,7 @@ class AnnotationEditorUIManager {
     if (!boxes) {
       return;
     }
-    console.log('displayHighlightToolbar', this.#highlightToolbar);
+    console.log("displayHighlightToolbar", this.#highlightToolbar);
     this.#highlightToolbar ||= new HighlightToolbar(this);
     this.#highlightToolbar.show(textLayer, boxes, this.direction === "ltr");
   }
@@ -2245,7 +2245,6 @@ class AnnotationEditorUIManager {
    * Delete the current editor or all.
    */
   delete() {
-    debugger
     this.commitOrRemove();
     const drawingEditor = this.currentLayer?.endDrawingSession(
       /* isAborted = */ true
@@ -2289,7 +2288,6 @@ class AnnotationEditorUIManager {
    * @param {Array<AnnotationEditor>} editors
    */
   #selectEditors(editors) {
-    debugger
     for (const editor of this.#selectedEditors) {
       editor.unselect();
     }
@@ -2308,7 +2306,6 @@ class AnnotationEditorUIManager {
    * Select all the editors.
    */
   selectAll() {
-    debugger
     for (const editor of this.#selectedEditors) {
       editor.commit();
     }

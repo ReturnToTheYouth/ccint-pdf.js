@@ -248,13 +248,10 @@ class HighlightToolbar {
       parentDiv: parent,
       editToolbarDiv: this.#toolbar,
     });
-    console.log('annotationtoolbartoolbaradded', this);
   }
 
   hide() {
-    debugger
     this.#toolbar.remove();
-    console.log('annotationtoolbartoolbarhide', this);
     this.#uiManager._eventBus.dispatch("annotationtoolbartoolbarhide", {
       source: this,
     });
