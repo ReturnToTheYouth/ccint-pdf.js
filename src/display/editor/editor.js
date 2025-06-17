@@ -1109,8 +1109,7 @@ class AnnotationEditor {
     if (this.#altText) {
       await this._editToolbar.addAltText(this.#altText);
     }
-    // eslint-disable-next-line no-console
-    console.log("addEditToolbar", this._editToolbar.toolbar);
+
     this._uiManager._eventBus.dispatch("editortoolbaradded", {
       source: this,
       parentDiv: this.div,
@@ -1938,11 +1937,14 @@ class AnnotationEditor {
     }
     this._editToolbar?.hide();
     this.#altText?.toggleAltTextBadge(true);
-    this._uiManager._eventBus.dispatch("editortoolbarhide", {
-      source: this,
-      parentDiv: this.div,
-      editToolbarDiv: this._editToolbar.toolbar,
-    });
+    if (this._editToolbar) {
+      // 如果有才执行
+      this._uiManager._eventBus.dispatch("editortoolbarhide", {
+        source: this,
+        parentDiv: this.div,
+        editToolbarDiv: this._editToolbar.toolbar,
+      });
+    }
   }
 
   /**
