@@ -187,6 +187,10 @@ class AnnotationEditorLayer {
         this.enableClick();
         break;
       case AnnotationEditorType.HIGHLIGHT:
+        this.enableTextSelection();
+        this.togglePointerEvents(false);
+        this.disableClick();
+        break;
       case AnnotationEditorType.STRIKETHROUGH:
       case AnnotationEditorType.UNDERLINE:
         this.enableTextSelection();
@@ -416,6 +420,10 @@ class AnnotationEditorLayer {
   }
 
   #textLayerPointerDown(event) {
+    // 只允许在高亮模式下触发
+    if (this.#uiManager.getMode() !== AnnotationEditorType.HIGHLIGHT) {
+      return;
+    }
     // Unselect all the editors in order to let the user select some text
     // without being annoyed by an editor toolbar.
     this.#uiManager.unselectAll();
