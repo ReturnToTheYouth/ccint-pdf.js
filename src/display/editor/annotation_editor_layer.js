@@ -209,13 +209,21 @@ class AnnotationEditorLayer {
     }
 
     this.toggleAnnotationLayerPointerEvents(false);
+
     const { classList } = this.div;
-    for (const editorType of AnnotationEditorLayer.#editorTypes.values()) {
-      classList.toggle(
-        `${editorType._type}Editing`,
-        mode === editorType._editorType
-      );
+    // 橡皮擦模式下，隐藏编辑器
+    if (mode === AnnotationEditorType.ERASER) {
+      // 添加一个类
+      classList.add("eraserEditing");
+    } else {
+      for (const editorType of AnnotationEditorLayer.#editorTypes.values()) {
+        classList.toggle(
+          `${editorType._type}Editing`,
+          mode === editorType._editorType
+        );
+      }
     }
+
     this.div.hidden = false;
   }
 
