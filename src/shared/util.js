@@ -98,6 +98,7 @@ const AnnotationEditorParamsType = {
   HIGHLIGHT_THICKNESS: 33,
   HIGHLIGHT_FREE: 34,
   HIGHLIGHT_SHOW_ALL: 35,
+  HIGHLIGHT_OPACITY: 36,
   DRAW_STEP: 41,
   // --- 新增批注变化类型 ----
   AREA_HIGHLIGHT_COLOR: 51,

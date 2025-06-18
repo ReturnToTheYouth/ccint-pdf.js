@@ -74,7 +74,7 @@ class HighlightEditor extends AnnotationEditor {
 
   static _defaultColor = null;
 
-  static _defaultOpacity = 1;
+  static _defaultOpacity = 0.5;
 
   static _defaultThickness = 12;
 
@@ -300,6 +300,9 @@ class HighlightEditor extends AnnotationEditor {
       case AnnotationEditorParamsType.HIGHLIGHT_THICKNESS:
         this.#updateThickness(value);
         break;
+      case AnnotationEditorParamsType.HIGHLIGHT_OPACITY:
+        this.#updateOpacity(value);
+        break;
     }
   }
 
@@ -367,6 +370,40 @@ class HighlightEditor extends AnnotationEditor {
       {
         action: "color_changed",
         color: this._uiManager.highlightColorNames.get(color),
+      },
+      /* mustWait = */ true
+    );
+  }
+
+  /**
+   * Update the opacity and make this action undoable.
+   * @param {number} opacity
+   */
+  #updateOpacity(opacity) {
+    const setOpacity = opa => {
+      this.#opacity = opa;
+      this.parent?.drawLayer.updateProperties(this.#id, {
+        root: {
+          fill: this.color,
+          "fill-opacity": opa,
+        },
+      });
+    };
+    const savedOpacity = this.#opacity;
+    this.addCommands({
+      cmd: setOpacity.bind(this, opacity),
+      undo: setOpacity.bind(this, savedOpacity),
+      post: this._uiManager.updateUI.bind(this._uiManager, this),
+      mustExec: true,
+      type: AnnotationEditorParamsType.HIGHLIGHT_OPACITY,
+      overwriteIfSameType: true,
+      keepUndo: true,
+    });
+
+    this._reportTelemetry(
+      {
+        action: "opacity_changed",
+        opacity,
       },
       /* mustWait = */ true
     );

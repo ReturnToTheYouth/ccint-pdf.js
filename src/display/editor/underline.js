@@ -14,6 +14,7 @@
  */
 
 import {
+  addOpacityToColor,
   AnnotationEditorParamsType,
   AnnotationEditorType,
   shadow,
@@ -67,13 +68,11 @@ class UnderlineEditor extends AnnotationEditor {
 
   #text = "";
 
-  #opacity;
+  #opacity = 1;
 
   #methodOfCreation = "";
 
   static _defaultColor = "#FF0000";
-
-  static _defaultOpacity = 1;
 
   static _type = "underline";
 
@@ -185,6 +184,9 @@ class UnderlineEditor extends AnnotationEditor {
       case AnnotationEditorParamsType.UNDERLINE_COLOR:
         this.#updateColor(value);
         break;
+      case AnnotationEditorParamsType.UNDERLINE_OPACITY:
+        this.#updateOpacity(value);
+        break;
     }
   }
 
@@ -215,7 +217,10 @@ class UnderlineEditor extends AnnotationEditor {
     const setColor = col => {
       this.color = col;
       for (const id of this.#ids) {
-        this.parent?.drawLayer.changeStrokeColor(id, col);
+        this.parent?.drawLayer.changeStrokeColor(
+          id,
+          addOpacityToColor(col, this.#opacity)
+        );
       }
       this.#colorPicker?.updateColor(col);
     };
@@ -234,6 +239,38 @@ class UnderlineEditor extends AnnotationEditor {
       {
         action: "color_changed",
         color,
+      },
+      /* mustWait = */ true
+    );
+  }
+
+  /**
+   * Update the opacity and make this action undoable.
+   * @param {number} opacity
+   */
+  #updateOpacity(opacity) {
+    const setOpacity = opa => {
+      this.#opacity = opa;
+      const { drawLayer } = this.parent;
+      for (const id of this.#ids) {
+        drawLayer.changeStrokeColor(id, addOpacityToColor(this.color, opa));
+      }
+    };
+    const savedOpacity = this.#opacity;
+    this.addCommands({
+      cmd: setOpacity.bind(this, opacity),
+      undo: setOpacity.bind(this, savedOpacity),
+      post: this._uiManager.updateUI.bind(this._uiManager, this),
+      mustExec: true,
+      type: AnnotationEditorParamsType.UNDERLINE_OPACITY,
+      overwriteIfSameType: true,
+      keepUndo: true,
+    });
+
+    this._reportTelemetry(
+      {
+        action: "opacity_changed",
+        opacity,
       },
       /* mustWait = */ true
     );

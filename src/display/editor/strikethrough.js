@@ -14,6 +14,7 @@
  */
 
 import {
+  addOpacityToColor,
   AnnotationEditorParamsType,
   AnnotationEditorType,
   Util,
@@ -48,6 +49,9 @@ class StrikethroughEditor extends AnnotationEditor {
   #outlineId = null;
 
   #colorPicker = null;
+
+  // 透明度
+  #opacity = 1;
 
   color = "#FF0000";
 
@@ -120,6 +124,9 @@ class StrikethroughEditor extends AnnotationEditor {
       case AnnotationEditorParamsType.STRIKETHROUGH_COLOR:
         this.#updateColor(value);
         break;
+      case AnnotationEditorParamsType.STRIKETHROUGH_OPACITY:
+        this.#updateOpacity(value);
+        break;
     }
   }
 
@@ -132,7 +139,7 @@ class StrikethroughEditor extends AnnotationEditor {
       this.color = col;
       const { drawLayer } = this.parent;
       for (const id of this.#ids) {
-        drawLayer.changeStrokeColor(id, col);
+        drawLayer.changeStrokeColor(id, addOpacityToColor(col, this.#opacity));
       }
       this.#colorPicker?.updateColor(col);
     };
@@ -151,6 +158,38 @@ class StrikethroughEditor extends AnnotationEditor {
       {
         action: "color_changed",
         color,
+      },
+      /* mustWait = */ true
+    );
+  }
+
+  /**
+   * Update the opacity and make this action undoable.
+   * @param {number} opacity
+   */
+  #updateOpacity(opacity) {
+    const setOpacity = opa => {
+      this.#opacity = opa;
+      const { drawLayer } = this.parent;
+      for (const id of this.#ids) {
+        drawLayer.changeStrokeColor(id, addOpacityToColor(this.color, opa));
+      }
+    };
+    const savedOpacity = this.#opacity;
+    this.addCommands({
+      cmd: setOpacity.bind(this, opacity),
+      undo: setOpacity.bind(this, savedOpacity),
+      post: this._uiManager.updateUI.bind(this._uiManager, this),
+      mustExec: true,
+      type: AnnotationEditorParamsType.STRIKETHROUGH_OPACITY,
+      overwriteIfSameType: true,
+      keepUndo: true,
+    });
+
+    this._reportTelemetry(
+      {
+        action: "opacity_changed",
+        opacity,
       },
       /* mustWait = */ true
     );
