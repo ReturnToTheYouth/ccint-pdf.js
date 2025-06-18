@@ -111,6 +111,9 @@ class AreaHighlightEditor extends AnnotationEditor {
       case AnnotationEditorParamsType.AREA_HIGHLIGHT_COLOR:
         this.#updateColor(value);
         break;
+      case AnnotationEditorParamsType.AREA_HIGHLIGHT_OPACITY:
+        this.#updateOpacity(value);
+        break;
     }
   }
 
@@ -167,6 +170,32 @@ class AreaHighlightEditor extends AnnotationEditor {
       {
         action: "color_changed",
         color,
+      },
+      /* mustWait = */ true
+    );
+  }
+
+  #updateOpacity(opacity) {
+    const setOpacity = opa => {
+      this.#opacity = opa;
+      this.div.style.backgroundColor = addOpacityToColor(this.#color, opa);
+      this.#colorPicker?.updateOpacity(opa);
+    };
+    const savedOpacity = this.#opacity;
+    this.addCommands({
+      cmd: setOpacity.bind(this, opacity),
+      undo: setOpacity.bind(this, savedOpacity),
+      post: this._uiManager.updateUI.bind(this._uiManager, this),
+      mustExec: true,
+      type: AnnotationEditorParamsType.AREA_HIGHLIGHT_OPACITY,
+      overwriteIfSameType: true,
+      keepUndo: true,
+    });
+
+    this._reportTelemetry(
+      {
+        action: "opacity_changed",
+        opacity,
       },
       /* mustWait = */ true
     );

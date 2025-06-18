@@ -101,8 +101,11 @@ const AnnotationEditorParamsType = {
   DRAW_STEP: 41,
   // --- 新增批注变化类型 ----
   AREA_HIGHLIGHT_COLOR: 51,
+  AREA_HIGHLIGHT_OPACITY: 52,
   STRIKETHROUGH_COLOR: 61,
+  STRIKETHROUGH_OPACITY: 62,
   UNDERLINE_COLOR: 71,
+  UNDERLINE_OPACITY: 72,
 };
 
 // Permission flags from Table 22, Section 7.6.3.2 of the PDF specification.
