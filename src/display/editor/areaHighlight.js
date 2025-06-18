@@ -179,7 +179,6 @@ class AreaHighlightEditor extends AnnotationEditor {
     const setOpacity = opa => {
       this.#opacity = opa;
       this.div.style.backgroundColor = addOpacityToColor(this.#color, opa);
-      this.#colorPicker?.updateOpacity(opa);
     };
     const savedOpacity = this.#opacity;
     this.addCommands({
