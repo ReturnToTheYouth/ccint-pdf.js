@@ -64,6 +64,14 @@ class FreeTextEditor extends AnnotationEditor {
 
   static _defaultFontSize = 10;
 
+  static _defaultTextParams = {
+    bold: false,
+    italic: false,
+    underline: false,
+    strikethrough: false,
+    alignment: "left",
+  };
+
   static get _keyboardManager() {
     const proto = FreeTextEditor.prototype;
 
@@ -143,6 +151,9 @@ class FreeTextEditor extends AnnotationEditor {
       FreeTextEditor._defaultColor ||
       AnnotationEditor._defaultLineColor;
     this.#fontSize = params.fontSize || FreeTextEditor._defaultFontSize;
+    this.#textParams = params.textParams || {
+      ...FreeTextEditor._defaultTextParams,
+    };
   }
 
   /** @inheritdoc */
@@ -166,6 +177,7 @@ class FreeTextEditor extends AnnotationEditor {
   }
 
   /** @inheritdoc */
+  // 相当于记录面板配置，之后新的editor都按照这个参数配置走
   static updateDefaultParams(type, value) {
     switch (type) {
       case AnnotationEditorParamsType.FREETEXT_SIZE:
@@ -173,6 +185,21 @@ class FreeTextEditor extends AnnotationEditor {
         break;
       case AnnotationEditorParamsType.FREETEXT_COLOR:
         FreeTextEditor._defaultColor = value;
+        break;
+      case AnnotationEditorParamsType.FREETEXT_BOLD:
+        FreeTextEditor._defaultTextParams.bold = value;
+        break;
+      case AnnotationEditorParamsType.FREETEXT_ITALIC:
+        FreeTextEditor._defaultTextParams.italic = value;
+        break;
+      case AnnotationEditorParamsType.FREETEXT_UNDERLINE:
+        FreeTextEditor._defaultTextParams.underline = value;
+        break;
+      case AnnotationEditorParamsType.FREETEXT_STRIKETHROUGH:
+        FreeTextEditor._defaultTextParams.strikethrough = value;
+        break;
+      case AnnotationEditorParamsType.FREETEXT_ALIGNMENT:
+        FreeTextEditor._defaultTextParams.alignment = value;
         break;
     }
   }
