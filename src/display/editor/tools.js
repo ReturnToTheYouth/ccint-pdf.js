@@ -2309,7 +2309,7 @@ class AnnotationEditorUIManager {
    * Select the editors.
    * @param {Array<AnnotationEditor>} editors
    */
-  #selectEditors(editors) {
+  #selectEditors(editors, needToolBar = true) {
     for (const editor of this.#selectedEditors) {
       editor.unselect();
     }
@@ -2319,7 +2319,11 @@ class AnnotationEditorUIManager {
         continue;
       }
       this.#selectedEditors.add(editor);
-      editor.select();
+      if (needToolBar) {
+        editor.select();
+      } else {
+        editor.selectWithoutToolbar();
+      }
     }
     this.#dispatchUpdateStates({ hasSelectedEditor: this.hasSelection });
   }
@@ -2331,7 +2335,8 @@ class AnnotationEditorUIManager {
     for (const editor of this.#selectedEditors) {
       editor.commit();
     }
-    this.#selectEditors(this.#allEditors.values());
+    // 全选不显示toolbar
+    this.#selectEditors(this.#allEditors.values(), false);
   }
 
   /**

@@ -241,10 +241,12 @@ class AreaHighlightEditor extends AnnotationEditor {
     let left = this.sourceX;
     let top = this.sourceY;
     if (width < 0) {
+      // width是负数，所以为加号，让其沿着负方向偏移
       left += width; // 向左拖动，left要跟着变
       width = Math.abs(width);
     }
     if (height < 0) {
+      // height是负数，所以为加号，让其沿着负方向偏移
       top += height; // 向上拖动，top要跟着变
       height = Math.abs(height);
     }

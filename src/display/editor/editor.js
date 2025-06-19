@@ -1920,6 +1920,16 @@ class AnnotationEditor {
     this.makeResizable();
     this.div?.classList.add("selectedEditor");
     this.#altText?.toggleAltTextBadge(false);
+    // 隐藏当前的toolbar
+    if (this._editToolbar && this._editToolbar.toolbar) {
+      this._editToolbar?.hide();
+      // 如果有才执行
+      this._uiManager._eventBus.dispatch("editortoolbarhide", {
+        source: this,
+        parentDiv: this.div,
+        editToolbarDiv: this._editToolbar.toolbar,
+      });
+    }
   }
 
   /**
