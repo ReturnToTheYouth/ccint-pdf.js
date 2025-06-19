@@ -443,6 +443,12 @@ class StrikethroughEditor extends AnnotationEditor {
     this.parent?.drawLayer.addClass(this.#outlineId, "selected");
   }
 
+  selectWithoutToolbar() {
+    super.selectWithoutToolbar();
+    this.parent?.drawLayer.removeClass(this.#outlineId, "hovered");
+    this.parent?.drawLayer.addClass(this.#outlineId, "selected");
+  }
+
   /** @inheritdoc */
   unselect() {
     super.unselect();

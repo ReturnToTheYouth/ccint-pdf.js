@@ -221,6 +221,11 @@ class AreaHighlightEditor extends AnnotationEditor {
     super.select();
   }
 
+  selectWithoutToolbar() {
+    this.div.classList.add("noBorderAreaHighlightEditor");
+    super.selectWithoutToolbar();
+  }
+
   unselect() {
     this.div.classList.remove("noBorderAreaHighlightEditor");
     super.unselect();

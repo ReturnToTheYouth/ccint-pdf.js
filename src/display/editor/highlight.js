@@ -742,6 +742,19 @@ class HighlightEditor extends AnnotationEditor {
     });
   }
 
+  selectWithoutToolbar() {
+    super.selectWithoutToolbar();
+    if (!this.#outlineId) {
+      return;
+    }
+    this.parent?.drawLayer.updateProperties(this.#outlineId, {
+      rootClass: {
+        hovered: false,
+        selected: true,
+      },
+    });
+  }
+
   /** @inheritdoc */
   unselect() {
     super.unselect();
