@@ -347,22 +347,20 @@ class HighlightEditor extends AnnotationEditor {
    * @param {string} color
    */
   #updateColor(color) {
-    const setColorAndOpacity = (col, opa) => {
+    const setColorAndOpacity = col => {
       this.color = col;
-      this.#opacity = opa;
       this.parent?.drawLayer.updateProperties(this.#id, {
         root: {
           fill: col,
-          "fill-opacity": opa,
+          "fill-opacity": this.#opacity,
         },
       });
       this.#colorPicker?.updateColor(col);
     };
     const savedColor = this.color;
-    const savedOpacity = this.#opacity;
     this.addCommands({
-      cmd: setColorAndOpacity.bind(this, color, savedOpacity),
-      undo: setColorAndOpacity.bind(this, savedColor, savedOpacity),
+      cmd: setColorAndOpacity.bind(this, color),
+      undo: setColorAndOpacity.bind(this, savedColor),
       post: this._uiManager.updateUI.bind(this._uiManager, this),
       mustExec: true,
       type: AnnotationEditorParamsType.HIGHLIGHT_COLOR,
@@ -970,7 +968,7 @@ class HighlightEditor extends AnnotationEditor {
     const editor = await super.deserialize(data, parent, uiManager);
 
     editor.color = Util.makeHexColor(...color);
-    editor.#opacity = opacity || 1;
+    editor.#opacity = opacity || HighlightEditor._defaultOpacity;
     if (inkLists) {
       editor.#thickness = data.thickness;
     }
