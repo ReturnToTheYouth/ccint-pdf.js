@@ -382,6 +382,9 @@ class FreeTextEditor extends AnnotationEditor {
     const setUnderline = under => {
       this.editorDiv.style.textDecoration = under ? "underline" : "none";
       this.#textParams.underline = under;
+      if (under && this.#textParams.strikethrough) {
+        this.#textParams.strikethrough = false;
+      }
     };
     const savedUnderline = this.#textParams.underline;
     this.addCommands({
@@ -403,6 +406,9 @@ class FreeTextEditor extends AnnotationEditor {
     const setStrikethrough = strik => {
       this.editorDiv.style.textDecoration = strik ? "line-through" : "none";
       this.#textParams.strikethrough = strik;
+      if (strik && this.#textParams.underline) {
+        this.#textParams.underline = false;
+      }
     };
     const savedStrikethrough = this.#textParams.strikethrough;
     this.addCommands({
@@ -763,6 +769,14 @@ class FreeTextEditor extends AnnotationEditor {
     const { style } = this.editorDiv;
     style.fontSize = `calc(${this.#fontSize}px * var(--total-scale-factor))`;
     style.color = this.#color;
+    // --- 设置字体样式 ---
+    style.fontWeight = this.#textParams.bold ? "bold" : "normal";
+    style.fontStyle = this.#textParams.italic ? "italic" : "normal";
+    style.textDecoration = this.#textParams.underline ? "underline" : "none";
+    style.textDecoration = this.#textParams.strikethrough
+      ? "line-through"
+      : "none";
+    style.textAlign = this.#textParams.alignment;
 
     this.div.append(this.editorDiv);
 
