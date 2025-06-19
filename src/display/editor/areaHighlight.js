@@ -238,13 +238,22 @@ class AreaHighlightEditor extends AnnotationEditor {
     let width = offsetX - sourceX - this.sourceX;
     let height = offsetY - sourceY - this.sourceY;
 
-    if (width < 0 || height < 0) {
-      width = 0;
-      height = 0;
+    let left = this.sourceX;
+    let top = this.sourceY;
+    if (width < 0) {
+      left += width; // 向左拖动，left要跟着变
+      width = Math.abs(width);
     }
+    if (height < 0) {
+      top += height; // 向上拖动，top要跟着变
+      height = Math.abs(height);
+    }
+
     this.originWidth = width;
     this.originHeight = height;
 
+    this.div.style.left = left + "px";
+    this.div.style.top = top + "px";
     this.div.style.width = width + "px";
     this.div.style.height = height + "px";
   }
