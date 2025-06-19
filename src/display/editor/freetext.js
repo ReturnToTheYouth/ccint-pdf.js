@@ -48,6 +48,14 @@ class FreeTextEditor extends AnnotationEditor {
 
   #fontSize;
 
+  #textParams = {
+    bold: false,
+    italic: false,
+    underline: false,
+    strikethrough: false,
+    alignment: "left",
+  };
+
   static _freeTextDefaultContent = "";
 
   static _internalPadding = 0;
@@ -178,6 +186,21 @@ class FreeTextEditor extends AnnotationEditor {
       case AnnotationEditorParamsType.FREETEXT_COLOR:
         this.#updateColor(value);
         break;
+      case AnnotationEditorParamsType.FREETEXT_BOLD:
+        this.#updateBold(value);
+        break;
+      case AnnotationEditorParamsType.FREETEXT_ITALIC:
+        this.#updateItalic(value);
+        break;
+      case AnnotationEditorParamsType.FREETEXT_UNDERLINE:
+        this.#updateUnderline(value);
+        break;
+      case AnnotationEditorParamsType.FREETEXT_STRIKETHROUGH:
+        this.#updateStrikethrough(value);
+        break;
+      case AnnotationEditorParamsType.FREETEXT_ALIGNMENT:
+        this.#updateAlignment(value);
+        break;
     }
   }
 
@@ -241,6 +264,113 @@ class FreeTextEditor extends AnnotationEditor {
       post: this._uiManager.updateUI.bind(this._uiManager, this),
       mustExec: true,
       type: AnnotationEditorParamsType.FREETEXT_COLOR,
+      overwriteIfSameType: true,
+      keepUndo: true,
+    });
+  }
+
+  /**
+   * Update the bold and make this action undoable.
+   * @param {boolean} bold
+   */
+  #updateBold(bold) {
+    const setBold = bol => {
+      this.editorDiv.style.fontWeight = bol ? "bold" : "normal";
+      this.#textParams.bold = bol;
+      this.#setEditorDimensions();
+    };
+    const savedBold = this.#textParams.bold;
+    this.addCommands({
+      cmd: setBold.bind(this, bold),
+      undo: setBold.bind(this, savedBold),
+      post: this._uiManager.updateUI.bind(this._uiManager, this),
+      mustExec: true,
+      type: AnnotationEditorParamsType.FREETEXT_BOLD,
+      overwriteIfSameType: true,
+      keepUndo: true,
+    });
+  }
+
+  /**
+   * Update the Italic and make this action undoable.
+   * @param {boolean} Italic
+   */
+  #updateItalic(italic) {
+    const setItalic = ital => {
+      this.editorDiv.style.fontStyle = ital ? "italic" : "normal";
+      this.#textParams.italic = ital;
+      this.#setEditorDimensions();
+    };
+    const savedItalic = this.#textParams.italic;
+    this.addCommands({
+      cmd: setItalic.bind(this, italic),
+      undo: setItalic.bind(this, savedItalic),
+      post: this._uiManager.updateUI.bind(this._uiManager, this),
+      mustExec: true,
+      type: AnnotationEditorParamsType.FREETEXT_ITALIC,
+      overwriteIfSameType: true,
+      keepUndo: true,
+    });
+  }
+
+  /**
+   * Update the underline and make this action undoable.
+   * @param {boolean} underline
+   */
+  #updateUnderline(underline) {
+    const setUnderline = under => {
+      this.editorDiv.style.textDecoration = under ? "underline" : "none";
+      this.#textParams.underline = under;
+    };
+    const savedUnderline = this.#textParams.underline;
+    this.addCommands({
+      cmd: setUnderline.bind(this, underline),
+      undo: setUnderline.bind(this, savedUnderline),
+      post: this._uiManager.updateUI.bind(this._uiManager, this),
+      mustExec: true,
+      type: AnnotationEditorParamsType.FREETEXT_UNDERLINE,
+      overwriteIfSameType: true,
+      keepUndo: true,
+    });
+  }
+
+  /**
+   * Update the strikethrough and make this action undoable.
+   * @param {boolean} strikethrough
+   */
+  #updateStrikethrough(strikethrough) {
+    const setStrikethrough = strik => {
+      this.editorDiv.style.textDecoration = strik ? "line-through" : "none";
+      this.#textParams.strikethrough = strik;
+    };
+    const savedStrikethrough = this.#textParams.strikethrough;
+    this.addCommands({
+      cmd: setStrikethrough.bind(this, strikethrough),
+      undo: setStrikethrough.bind(this, savedStrikethrough),
+      post: this._uiManager.updateUI.bind(this._uiManager, this),
+      mustExec: true,
+      type: AnnotationEditorParamsType.FREETEXT_STRIKETHROUGH,
+      overwriteIfSameType: true,
+      keepUndo: true,
+    });
+  }
+
+  /**
+   * Update the alignment and make this action undoable.
+   * @param {string} alignment
+   */
+  #updateAlignment(alignment) {
+    const setAlignment = align => {
+      this.editorDiv.style.textAlign = align;
+      this.#textParams.alignment = align;
+    };
+    const savedAlignment = this.#textParams.alignment;
+    this.addCommands({
+      cmd: setAlignment.bind(this, alignment),
+      undo: setAlignment.bind(this, savedAlignment),
+      post: this._uiManager.updateUI.bind(this._uiManager, this),
+      mustExec: true,
+      type: AnnotationEditorParamsType.FREETEXT_ALIGNMENT,
       overwriteIfSameType: true,
       keepUndo: true,
     });
