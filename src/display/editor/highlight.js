@@ -62,7 +62,7 @@ class HighlightEditor extends AnnotationEditor {
 
   #lastPoint = null;
 
-  #opacity;
+  #opacity = 0.5;
 
   #outlineId = null;
 
@@ -361,11 +361,7 @@ class HighlightEditor extends AnnotationEditor {
     const savedColor = this.color;
     const savedOpacity = this.#opacity;
     this.addCommands({
-      cmd: setColorAndOpacity.bind(
-        this,
-        color,
-        HighlightEditor._defaultOpacity
-      ),
+      cmd: setColorAndOpacity.bind(this, color, savedOpacity),
       undo: setColorAndOpacity.bind(this, savedColor, savedOpacity),
       post: this._uiManager.updateUI.bind(this._uiManager, this),
       mustExec: true,
