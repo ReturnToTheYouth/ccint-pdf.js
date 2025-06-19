@@ -74,6 +74,8 @@ class UnderlineEditor extends AnnotationEditor {
 
   static _defaultColor = "#FF0000";
 
+  static _defaultOpacity = 1;
+
   static _type = "underline";
 
   static _editorType = AnnotationEditorType.UNDERLINE;
@@ -196,6 +198,10 @@ class UnderlineEditor extends AnnotationEditor {
         AnnotationEditorParamsType.UNDERLINE_COLOR,
         UnderlineEditor._defaultColor,
       ],
+      [
+        AnnotationEditorParamsType.UNDERLINE_OPACITY,
+        UnderlineEditor._defaultOpacity,
+      ],
     ];
   }
 
@@ -205,6 +211,10 @@ class UnderlineEditor extends AnnotationEditor {
       [
         AnnotationEditorParamsType.UNDERLINE_COLOR,
         this.color || UnderlineEditor._defaultColor,
+      ],
+      [
+        AnnotationEditorParamsType.UNDERLINE_OPACITY,
+        this.#opacity || UnderlineEditor._defaultOpacity,
       ],
     ];
   }

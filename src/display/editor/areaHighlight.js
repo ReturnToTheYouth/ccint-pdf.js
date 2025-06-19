@@ -124,12 +124,19 @@ class AreaHighlightEditor extends AnnotationEditor {
         AnnotationEditorParamsType.AREA_HIGHLIGHT_COLOR,
         AreaHighlightEditor._defaultColor || AnnotationEditor._defaultLineColor,
       ],
+      [
+        AnnotationEditorParamsType.AREA_HIGHLIGHT_OPACITY,
+        AreaHighlightEditor._defaultOpacity,
+      ],
     ];
   }
 
   /** @inheritdoc */
   get propertiesToUpdate() {
-    return [[AnnotationEditorParamsType.AREA_HIGHLIGHT_COLOR, this.#color]];
+    return [
+      [AnnotationEditorParamsType.AREA_HIGHLIGHT_COLOR, this.#color],
+      [AnnotationEditorParamsType.AREA_HIGHLIGHT_OPACITY, this.#opacity],
+    ];
   }
 
   /** @inheritdoc */

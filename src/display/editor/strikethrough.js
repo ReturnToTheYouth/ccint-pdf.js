@@ -57,6 +57,10 @@ class StrikethroughEditor extends AnnotationEditor {
 
   static _l10nPromise;
 
+  static _defaultColor = "#FF0000";
+
+  static _defaultOpacity = 1;
+
   static _type = "strikethrough";
 
   static _editorType = AnnotationEditorType.STRIKETHROUGH;
@@ -196,12 +200,30 @@ class StrikethroughEditor extends AnnotationEditor {
   }
 
   static get defaultPropertiesToUpdate() {
-    return [];
+    return [
+      [
+        AnnotationEditorParamsType.STRIKETHROUGH_COLOR,
+        StrikethroughEditor._defaultColor,
+      ],
+      [
+        AnnotationEditorParamsType.STRIKETHROUGH_OPACITY,
+        StrikethroughEditor._defaultOpacity,
+      ],
+    ];
   }
 
   /** @inheritdoc */
   get propertiesToUpdate() {
-    return [];
+    return [
+      [
+        AnnotationEditorParamsType.STRIKETHROUGH_COLOR,
+        this.color || StrikethroughEditor._defaultColor,
+      ],
+      [
+        AnnotationEditorParamsType.STRIKETHROUGH_OPACITY,
+        this.#opacity || StrikethroughEditor._defaultOpacity,
+      ],
+    ];
   }
 
   /** @inheritdoc */

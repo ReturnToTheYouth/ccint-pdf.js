@@ -242,6 +242,26 @@ class FreeTextEditor extends AnnotationEditor {
         AnnotationEditorParamsType.FREETEXT_COLOR,
         FreeTextEditor._defaultColor || AnnotationEditor._defaultLineColor,
       ],
+      [
+        AnnotationEditorParamsType.FREETEXT_BOLD,
+        FreeTextEditor._defaultTextParams.bold,
+      ],
+      [
+        AnnotationEditorParamsType.FREETEXT_ITALIC,
+        FreeTextEditor._defaultTextParams.italic,
+      ],
+      [
+        AnnotationEditorParamsType.FREETEXT_UNDERLINE,
+        FreeTextEditor._defaultTextParams.underline,
+      ],
+      [
+        AnnotationEditorParamsType.FREETEXT_STRIKETHROUGH,
+        FreeTextEditor._defaultTextParams.strikethrough,
+      ],
+      [
+        AnnotationEditorParamsType.FREETEXT_ALIGNMENT,
+        FreeTextEditor._defaultTextParams.alignment,
+      ],
     ];
   }
 
@@ -250,6 +270,20 @@ class FreeTextEditor extends AnnotationEditor {
     return [
       [AnnotationEditorParamsType.FREETEXT_SIZE, this.#fontSize],
       [AnnotationEditorParamsType.FREETEXT_COLOR, this.#color],
+      [AnnotationEditorParamsType.FREETEXT_BOLD, this.#textParams.bold],
+      [AnnotationEditorParamsType.FREETEXT_ITALIC, this.#textParams.italic],
+      [
+        AnnotationEditorParamsType.FREETEXT_UNDERLINE,
+        this.#textParams.underline,
+      ],
+      [
+        AnnotationEditorParamsType.FREETEXT_STRIKETHROUGH,
+        this.#textParams.strikethrough,
+      ],
+      [
+        AnnotationEditorParamsType.FREETEXT_ALIGNMENT,
+        this.#textParams.alignment,
+      ],
     ];
   }
 

@@ -316,6 +316,10 @@ class HighlightEditor extends AnnotationEditor {
         AnnotationEditorParamsType.HIGHLIGHT_THICKNESS,
         HighlightEditor._defaultThickness,
       ],
+      [
+        AnnotationEditorParamsType.HIGHLIGHT_OPACITY,
+        HighlightEditor._defaultOpacity,
+      ],
     ];
   }
 
@@ -331,6 +335,10 @@ class HighlightEditor extends AnnotationEditor {
         this.#thickness || HighlightEditor._defaultThickness,
       ],
       [AnnotationEditorParamsType.HIGHLIGHT_FREE, this.#isFreeHighlight],
+      [
+        AnnotationEditorParamsType.HIGHLIGHT_OPACITY,
+        this.#opacity || HighlightEditor._defaultOpacity,
+      ],
     ];
   }
 
