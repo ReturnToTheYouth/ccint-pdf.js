@@ -772,10 +772,12 @@ class FreeTextEditor extends AnnotationEditor {
     // --- 设置字体样式 ---
     style.fontWeight = this.#textParams.bold ? "bold" : "normal";
     style.fontStyle = this.#textParams.italic ? "italic" : "normal";
-    style.textDecoration = this.#textParams.underline ? "underline" : "none";
-    style.textDecoration = this.#textParams.strikethrough
-      ? "line-through"
-      : "none";
+    // eslint-disable-next-line no-nested-ternary
+    style.textDecoration = this.#textParams.underline
+      ? "underline"
+      : this.#textParams.strikethrough
+        ? "line-through"
+        : "none";
     style.textAlign = this.#textParams.alignment;
 
     this.div.append(this.editorDiv);
