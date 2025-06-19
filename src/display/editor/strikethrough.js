@@ -91,6 +91,8 @@ class StrikethroughEditor extends AnnotationEditor {
     this.width = box.width;
     this.height = box.height;
 
+    this.#strikethroughOutlines = outlinerForBox.getOutlines();
+
     const outlinerForOutline = new StrikethroughOutliner(
       this.#boxes,
       /* borderWidth = */ 0.0025,

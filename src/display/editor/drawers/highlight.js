@@ -300,6 +300,7 @@ class HighlightOutline extends Outline {
    * @returns {Array<Array<number>>}
    */
   serialize([blX, blY, trX, trY], _rotation) {
+    debugger
     const outlines = [];
     const width = trX - blX;
     const height = trY - blY;
@@ -316,6 +317,10 @@ class HighlightOutline extends Outline {
 
   get box() {
     return this.#box;
+  }
+
+  get outlines() {
+    return this.#outlines;
   }
 
   get classNamesForOutlining() {

@@ -2577,11 +2577,12 @@ class AnnotationEditorUIManager {
       return null;
     }
     const selection = document.getSelection();
+    // 判断选中的区域是否在文本层中
     for (let i = 0, ii = selection.rangeCount; i < ii; i++) {
       if (
         !textLayer.contains(selection.getRangeAt(i).commonAncestorContainer)
       ) {
-        return null;
+        return null; // 如果选中的区域不在文本层中，则返回null
       }
     }
 
@@ -2634,8 +2635,9 @@ class AnnotationEditorUIManager {
     for (let i = 0, ii = selection.rangeCount; i < ii; i++) {
       const range = selection.getRangeAt(i);
       if (range.collapsed) {
-        continue;
+        continue; // 跳过空选择
       }
+      // 获取选择范围的所有矩形区域
       for (const { x, y, width, height } of range.getClientRects()) {
         if (width === 0 || height === 0) {
           continue;
