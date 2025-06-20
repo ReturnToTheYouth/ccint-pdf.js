@@ -2931,6 +2931,7 @@ class UnderlineAnnotationElement extends AnnotationElement {
       ignoreBorder: true,
       createQuadrilaterals: true,
     });
+    this.annotationEditorType = AnnotationEditorType.UNDERLINE;
   }
 
   render() {
@@ -2939,6 +2940,8 @@ class UnderlineAnnotationElement extends AnnotationElement {
     }
 
     this.container.classList.add("underlineAnnotation");
+    this._editOnDoubleClick();
+
     return this.container;
   }
 }
@@ -3364,4 +3367,5 @@ export {
   HighlightAnnotationElement,
   InkAnnotationElement,
   StampAnnotationElement,
+  UnderlineAnnotationElement,
 };

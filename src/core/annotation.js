@@ -4784,6 +4784,8 @@ class UnderlineAnnotation extends MarkupAnnotation {
 
     const { dict, xref } = params;
     this.data.annotationType = AnnotationType.UNDERLINE;
+    this.data.isEditable = !this.data.noHTML;
+    this.data.noHTML = false;
 
     const quadPoints = (this.data.quadPoints = getQuadPoints(dict, null));
     if (quadPoints) {

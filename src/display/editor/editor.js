@@ -654,6 +654,7 @@ class AnnotationEditor {
    * @param {number} [rotation] - the rotation of the page.
    */
   fixAndSetPosition(rotation = this.rotation) {
+    debugger
     const {
       div: { style },
       pageDimensions: [pageWidth, pageHeight],

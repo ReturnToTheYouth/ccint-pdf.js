@@ -20,18 +20,11 @@ import {
   shadow,
   Util,
 } from "../../shared/util.js";
-import { bindEvents, KeyboardManager } from "./tools.js";
-import {
-  FreeHighlightOutliner,
-  HighlightOutliner,
-} from "./drawers/highlight.js";
-import {
-  HighlightAnnotationElement,
-  InkAnnotationElement,
-} from "../annotation_layer.js";
-import { noContextMenu, stopEvent } from "../display_utils.js";
 import { AnnotationEditor } from "./editor.js";
 import { ColorPicker } from "./color_picker.js";
+import { HighlightOutliner } from "./drawers/highlight.js";
+import { bindEvents, KeyboardManager } from "./tools.js";
+import { UnderlineAnnotationElement } from "../annotation_layer.js";
 
 /**
  * Basic draw editor in order to generate an Underline annotation.
@@ -600,25 +593,55 @@ class UnderlineEditor extends AnnotationEditor {
   }
 
   /** @inheritdoc */
-  static deserialize(data, parent, uiManager) {
-    const editor = super.deserialize(data, parent, uiManager);
+  static async deserialize(data, parent, uiManager) {
+    let initialData = null;
+    if (data instanceof UnderlineAnnotationElement) {
+      const {
+        data: { quadPoints, rect, rotation, id, color, opacity, popupRef },
+        parent: {
+          page: { pageNumber },
+        },
+      } = data;
+      initialData = data = {
+        annotationType: AnnotationEditorType.UNDERLINE,
+        color: Array.from(color),
+        opacity,
+        quadPoints,
+        boxes: null,
+        pageIndex: pageNumber - 1,
+        rect: rect.slice(0),
+        rotation,
+        id,
+        deleted: false,
+        popupRef,
+      };
+    }
 
-    const { rect, color, quadPoints } = data;
+    const { color, quadPoints, opacity } = data;
+    const editor = await super.deserialize(data, parent, uiManager);
+
     editor.color = Util.makeHexColor(...color);
+    editor.#opacity = opacity || UnderlineEditor._defaultOpacity;
+    editor.annotationElementId = data.id || null;
+    editor._initialData = initialData;
 
     const [pageWidth, pageHeight] = editor.pageDimensions;
-    editor.width = (rect[2] - rect[0]) / pageWidth;
-    editor.height = (rect[3] - rect[1]) / pageHeight;
-    const boxes = (editor.#boxes = []);
-    for (let i = 0; i < quadPoints.length; i += 8) {
-      boxes.push({
-        x: quadPoints[4] / pageWidth,
-        y: 1 - quadPoints[i + 5] / pageHeight,
-        width: (quadPoints[i + 2] - quadPoints[i]) / pageWidth,
-        height: (quadPoints[i + 5] - quadPoints[i + 1]) / pageHeight,
-      });
+    const [pageX, pageY] = editor.pageTranslation;
+
+    if (quadPoints) {
+      const boxes = (editor.#boxes = []);
+      for (let i = 0; i < quadPoints.length; i += 8) {
+        boxes.push({
+          x: (quadPoints[i] - pageX) / pageWidth,
+          y: 1 - (quadPoints[i + 1] - pageY) / pageHeight,
+          width: (quadPoints[i + 2] - quadPoints[i]) / pageWidth,
+          height: (quadPoints[i + 1] - quadPoints[i + 5]) / pageHeight,
+        });
+      }
+      editor.#lineBoxes = AnnotationEditor.deduplicate(boxes);
+      editor.#createOutlines();
+      editor.#addToDrawLayer();
     }
-    editor.#createOutlines();
 
     return editor;
   }

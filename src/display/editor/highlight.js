@@ -921,6 +921,7 @@ class HighlightEditor extends AnnotationEditor {
           page: { pageNumber },
         },
       } = data;
+      debugger
       initialData = data = {
         annotationType: AnnotationEditorType.HIGHLIGHT,
         color: Array.from(color),
