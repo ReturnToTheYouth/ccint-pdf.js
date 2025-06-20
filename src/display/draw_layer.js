@@ -328,7 +328,7 @@ class DrawLayer {
   }
 
   // percent表示位置
-  drawLine(boxes, percent) {
+  drawLine(boxes, percent, color = "#FF0000") {
     // box index
     const ids = [];
     for (const bdx in boxes) {
@@ -348,7 +348,7 @@ class DrawLayer {
       const use = DrawLayer._svgFactory.createElement("use");
       root.append(use);
       // 默认为红色
-      use.setAttribute("style", "color: #FF0000");
+      use.setAttribute("style", `color: ${color}`);
       use.setAttribute("href", `#${lineId}`);
       ids.push(id);
       this.#mapping.set(id, root);

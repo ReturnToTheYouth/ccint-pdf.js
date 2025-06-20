@@ -356,7 +356,7 @@ class StrikethroughEditor extends AnnotationEditor {
       return;
     }
     // 第一个是画本体
-    this.#ids = parent.drawLayer.drawLine(this.#lineBoxes, 0.55);
+    this.#ids = parent.drawLayer.drawLine(this.#lineBoxes, 0.55, this.color);
 
     // 第二个是画轮廓 画轮廓的要留着，画本体的要改掉
     const ret = parent.drawLayer.lineOutline(this.#focusOutlines);
