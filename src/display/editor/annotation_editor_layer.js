@@ -671,8 +671,16 @@ class AnnotationEditorLayer {
    * @returns {AnnotationEditor}
    */
   #createNewEditor(params) {
-    const editorType = this.#currentEditorType;
-    return editorType ? new editorType.prototype.constructor(params) : null;
+    let editorType = this.#currentEditorType;
+    const isOnceAnnotation =
+      params.methodOfCreation === "floating_button" && params.mode;
+    if (isOnceAnnotation) {
+      // 单次批注获取到对应的类
+      editorType = AnnotationEditorLayer.#editorTypes.get(params.mode);
+    }
+    return editorType || isOnceAnnotation
+      ? new editorType.prototype.constructor(params)
+      : null;
   }
 
   canCreateNewEmptyEditor() {

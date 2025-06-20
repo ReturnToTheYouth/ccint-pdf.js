@@ -1054,12 +1054,13 @@ class AnnotationEditorUIManager {
         focusNode,
         focusOffset,
         text,
+        mode: AnnotationEditorType.UNDERLINE,
       });
       if (isNoneMode) {
         this.showAllEditors("underline", true, /* updateButton = */ true);
       }
     };
-    if (isNoneMode) {
+    if (isNoneMode && methodOfCreation !== "floating_button") {
       this.switchToMode(AnnotationEditorType.UNDERLINE, callback);
       return;
     }
@@ -1093,12 +1094,13 @@ class AnnotationEditorUIManager {
         focusNode,
         focusOffset,
         text,
+        mode: AnnotationEditorType.STRIKETHROUGH,
       });
       if (isNoneMode) {
         this.showAllEditors("strikethrough", true, /* updateButton = */ true);
       }
     };
-    if (isNoneMode) {
+    if (isNoneMode && methodOfCreation !== "floating_button") {
       this.switchToMode(AnnotationEditorType.STRIKETHROUGH, callback);
       return;
     }
@@ -1232,12 +1234,14 @@ class AnnotationEditorUIManager {
         focusNode,
         focusOffset,
         text,
+        mode: AnnotationEditorType.HIGHLIGHT,
       });
       if (isNoneMode) {
         this.showAllEditors("highlight", true, /* updateButton = */ true);
       }
     };
-    if (isNoneMode) {
+    // 如果不是选中后的、popmenu操作的单次批注行为，则开启全局mode
+    if (isNoneMode && methodOfCreation !== "floating_button") {
       this.switchToMode(AnnotationEditorType.HIGHLIGHT, callback);
       return;
     }
@@ -1255,7 +1259,7 @@ class AnnotationEditorUIManager {
     if (!boxes) {
       return;
     }
-    console.log("displayHighlightToolbar", this.#highlightToolbar);
+
     this.#highlightToolbar ||= new HighlightToolbar(this);
     this.#highlightToolbar.show(textLayer, boxes, this.direction === "ltr");
   }
