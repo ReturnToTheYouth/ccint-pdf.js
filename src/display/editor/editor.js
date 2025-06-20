@@ -1553,8 +1553,10 @@ class AnnotationEditor {
 
   /**
    * Enable edit mode.
+   * @param {boolean} global - true if the editing mode is enabled globally.
+   * or just for the certain editor
    */
-  enableEditMode() {
+  enableEditMode(global = true) {
     this.#isInEditMode = true;
   }
 
@@ -1986,7 +1988,7 @@ class AnnotationEditor {
   /**
    * The editor is about to be edited.
    */
-  enterInEditMode() {}
+  enterInEditMode(global = true) {}
 
   /**
    * @returns {HTMLElement | null} the element requiring an alt text.

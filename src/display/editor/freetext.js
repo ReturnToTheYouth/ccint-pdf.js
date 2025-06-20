@@ -480,13 +480,16 @@ class FreeTextEditor extends AnnotationEditor {
   }
 
   /** @inheritdoc */
-  enableEditMode() {
+  enableEditMode(global = true) {
     if (this.isInEditMode()) {
       return;
     }
 
     this.parent.setEditingState(false);
-    this.parent.updateToolbar(AnnotationEditorType.FREETEXT);
+    // 如果是全局开启模式，执行更新toolbar和模式
+    if (global) {
+      this.parent.updateToolbar(AnnotationEditorType.FREETEXT);
+    }
     super.enableEditMode();
     this.overlayDiv.classList.remove("enabled");
     this.editorDiv.contentEditable = true;
@@ -690,8 +693,8 @@ class FreeTextEditor extends AnnotationEditor {
   }
 
   /** @inheritdoc */
-  enterInEditMode() {
-    this.enableEditMode();
+  enterInEditMode(global = true) {
+    this.enableEditMode(global);
     this.editorDiv.focus();
   }
 
@@ -700,7 +703,7 @@ class FreeTextEditor extends AnnotationEditor {
    * @param {MouseEvent} event
    */
   dblclick(event) {
-    this.enterInEditMode();
+    this.enterInEditMode(false);
   }
 
   /**

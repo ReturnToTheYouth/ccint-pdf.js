@@ -1844,14 +1844,15 @@ class AnnotationEditorUIManager {
     await this.#enableAll();
     this.unselectAll();
     for (const layer of this.#allLayers.values()) {
-      // 自定义的点击事件取消
-      layer.disableBlankUnselect();
+      // // 自定义的点击事件取消
+      layer.enableBlankUnselect();
       layer.updateMode();
     }
     for (const editor of this.#allEditors.values()) {
       if (editor.annotationElementId === editId) {
         this.setSelected(editor);
-        editor.enterInEditMode();
+        // 不是global进入全局模式，只激活某个editor
+        editor.enterInEditMode(false);
       } else {
         editor.unselect();
       }
