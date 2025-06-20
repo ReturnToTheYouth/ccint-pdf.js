@@ -298,7 +298,8 @@ class AreaHighlightEditor extends AnnotationEditor {
     this.width = (1.0 * this.originWidth) / parentWidth;
     this.height = (1.0 * this.originHeight) / parentHeight;
     this.adaptSize();
-    this.parent.setSelected(this);
+    // 添加了editor之后取消自动选中
+    // this.parent.setSelected(this);
   }
 
   adaptSize() {
@@ -410,6 +411,8 @@ class AreaHighlightEditor extends AnnotationEditor {
       this.#color,
       this.#opacity
     );
+    this.div.style.border = "none";
+    this.div.style.outline = "none";
 
     if (typeof PDFJSDev !== "undefined" && PDFJSDev.test("TESTING")) {
       this.div.setAttribute("annotation-id", this.annotationElementId);

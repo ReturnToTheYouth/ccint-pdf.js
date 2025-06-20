@@ -73,7 +73,6 @@ class StrikethroughEditor extends AnnotationEditor {
     this.#lineBoxes = AnnotationEditor.deduplicate(params.boxes);
     this._isDraggable = false;
     this.selectedText = params.selectedText;
-    this.fromCommand = params.fromCommand;
 
     this.#createOutlines();
     this.#addToDrawLayer();
@@ -264,11 +263,11 @@ class StrikethroughEditor extends AnnotationEditor {
   }
 
   /** @inheritdoc */
-  onceAdded() {
+  onceAdded(focus) {
     if (!this.annotationElementId) {
       this.parent.addUndoableEditor(this);
     }
-    if (!this.fromCommand) {
+    if (focus) {
       this.div.focus();
     }
   }

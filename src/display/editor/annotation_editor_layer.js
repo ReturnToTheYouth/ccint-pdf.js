@@ -575,7 +575,12 @@ class AnnotationEditorLayer {
 
     // The editor will be correctly moved into the DOM (see fixAndSetPosition).
     editor.fixAndSetPosition();
-    editor.onceAdded(/* focus = */ !this.#isEnabling);
+    // 需要focuse的时候
+    const enableType = editor.editorType === "freetext";
+    const needFocus =
+      (enableType && !this.#isEnabling) || (!enableType && this.#isEnabling);
+    // 启用编辑的时候，focus
+    editor.onceAdded(/* focus = */ needFocus);
     this.#uiManager.addToAnnotationStorage(editor);
     editor._reportTelemetry(editor.telemetryInitialData);
   }
