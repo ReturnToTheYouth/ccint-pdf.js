@@ -2972,6 +2972,7 @@ class StrikeOutAnnotationElement extends AnnotationElement {
       ignoreBorder: true,
       createQuadrilaterals: true,
     });
+    this.annotationEditorType = AnnotationEditorType.STRIKETHROUGH;
   }
 
   render() {
@@ -2980,6 +2981,8 @@ class StrikeOutAnnotationElement extends AnnotationElement {
     }
 
     this.container.classList.add("strikeoutAnnotation");
+    debugger
+    this._editOnDoubleClick();
     return this.container;
   }
 }
@@ -3367,5 +3370,6 @@ export {
   HighlightAnnotationElement,
   InkAnnotationElement,
   StampAnnotationElement,
+  StrikeOutAnnotationElement,
   UnderlineAnnotationElement,
 };

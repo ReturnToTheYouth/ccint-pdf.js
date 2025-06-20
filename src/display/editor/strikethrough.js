@@ -21,6 +21,7 @@ import {
 } from "../../shared/util.js";
 import { AnnotationEditor } from "./editor.js";
 import { ColorPicker } from "./color_picker.js";
+import { StrikeOutAnnotationElement } from "../annotation_layer.js";
 // eslint-disable-next-line sort-imports
 import { bindEvents } from "./tools.js";
 import { StrikethroughOutliner } from "./drawers/strikethroughdraw.js";
@@ -55,6 +56,18 @@ class StrikethroughEditor extends AnnotationEditor {
 
   color = "#FF0000";
 
+  #methodOfCreation = "";
+
+  #text = "";
+
+  #anchorNode = null;
+
+  #anchorOffset = 0;
+
+  #focusNode = null;
+
+  #focusOffset = 0;
+
   static _l10nPromise;
 
   static _defaultColor = "#FF0000";
@@ -73,9 +86,17 @@ class StrikethroughEditor extends AnnotationEditor {
     this.#lineBoxes = AnnotationEditor.deduplicate(params.boxes);
     this._isDraggable = false;
     this.selectedText = params.selectedText;
+    this.#methodOfCreation = params.methodOfCreation || "";
+    this.#text = params.text || "";
 
-    this.#createOutlines();
-    this.#addToDrawLayer();
+    if (this.#boxes) {
+      this.#anchorNode = params.anchorNode;
+      this.#anchorOffset = params.anchorOffset;
+      this.#focusNode = params.focusNode;
+      this.#focusOffset = params.focusOffset;
+      this.#createOutlines();
+      this.#addToDrawLayer();
+    }
   }
 
   #createOutlines() {
@@ -497,25 +518,55 @@ class StrikethroughEditor extends AnnotationEditor {
   }
 
   /** @inheritdoc */
-  static deserialize(data, parent, uiManager) {
-    const editor = super.deserialize(data, parent, uiManager);
+  static async deserialize(data, parent, uiManager) {
+    let initialData = null;
+    if (data instanceof StrikeOutAnnotationElement) {
+      const {
+        data: { quadPoints, rect, rotation, id, color, opacity, popupRef },
+        parent: {
+          page: { pageNumber },
+        },
+      } = data;
+      initialData = data = {
+        annotationType: AnnotationEditorType.STRIKETHROUGH,
+        color: Array.from(color),
+        opacity,
+        quadPoints,
+        boxes: null,
+        pageIndex: pageNumber - 1,
+        rect: rect.slice(0),
+        rotation,
+        id,
+        deleted: false,
+        popupRef,
+      };
+    }
 
-    const { rect, color, quadPoints } = data;
+    const { color, quadPoints, opacity } = data;
+    const editor = await super.deserialize(data, parent, uiManager);
+
     editor.color = Util.makeHexColor(...color);
+    editor.#opacity = opacity || StrikethroughEditor._defaultOpacity;
+    editor.annotationElementId = data.id || null;
+    editor._initialData = initialData;
 
     const [pageWidth, pageHeight] = editor.pageDimensions;
-    editor.width = (rect[2] - rect[0]) / pageWidth;
-    editor.height = (rect[3] - rect[1]) / pageHeight;
-    const boxes = (editor.#boxes = []);
-    for (let i = 0; i < quadPoints.length; i += 8) {
-      boxes.push({
-        x: quadPoints[4] / pageWidth,
-        y: 1 - quadPoints[i + 5] / pageHeight,
-        width: (quadPoints[i + 2] - quadPoints[i]) / pageWidth,
-        height: (quadPoints[i + 5] - quadPoints[i + 1]) / pageHeight,
-      });
+    const [pageX, pageY] = editor.pageTranslation;
+
+    if (quadPoints) {
+      const boxes = (editor.#boxes = []);
+      for (let i = 0; i < quadPoints.length; i += 8) {
+        boxes.push({
+          x: (quadPoints[i] - pageX) / pageWidth,
+          y: 1 - (quadPoints[i + 1] - pageY) / pageHeight,
+          width: (quadPoints[i + 2] - quadPoints[i]) / pageWidth,
+          height: (quadPoints[i + 1] - quadPoints[i + 5]) / pageHeight,
+        });
+      }
+      editor.#lineBoxes = AnnotationEditor.deduplicate(boxes);
+      editor.#createOutlines();
+      editor.#addToDrawLayer();
     }
-    editor.#createOutlines();
 
     return editor;
   }

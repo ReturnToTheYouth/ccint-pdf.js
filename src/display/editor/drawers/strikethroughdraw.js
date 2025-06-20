@@ -48,6 +48,7 @@ class StrikethroughOutliner {
     // final outlines.
     const NUMBER_OF_DIGITS = 4;
     const EPSILON = 10 ** -NUMBER_OF_DIGITS;
+    debugger
 
     // The coordinates of the boxes are in the page coordinate system.
     for (const { x, y, width, height } of boxes) {

@@ -4868,7 +4868,8 @@ class StrikeOutAnnotation extends MarkupAnnotation {
 
     const { dict, xref } = params;
     this.data.annotationType = AnnotationType.STRIKEOUT;
-
+    this.data.isEditable = !this.data.noHTML;
+    this.data.noHTML = false;
     const quadPoints = (this.data.quadPoints = getQuadPoints(dict, null));
     if (quadPoints) {
       if (!this.appearance) {
