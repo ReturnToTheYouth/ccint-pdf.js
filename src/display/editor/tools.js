@@ -2144,8 +2144,22 @@ class AnnotationEditorUIManager {
       });
       return;
     }
+    const isMultiSelect = this.#selectedEditors.size >= 1;
+    if (isMultiSelect) {
+      // 原来的关闭toolbar
+      // 遍历selectedEditors，关闭toolbar
+      for (const preEditor of this.#selectedEditors) {
+        preEditor.selectWithoutToolbar();
+      }
+    }
     this.#selectedEditors.add(editor);
-    editor.select();
+
+    if (isMultiSelect) {
+      // // 多选不要触发popmenu
+      editor.selectWithoutToolbar();
+    } else {
+      editor.select();
+    }
     this.#dispatchUpdateUI(editor.propertiesToUpdate);
     this.#dispatchUpdateStates({
       hasSelectedEditor: true,

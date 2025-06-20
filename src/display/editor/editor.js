@@ -1345,6 +1345,7 @@ class AnnotationEditor {
       event.shiftKey ||
       (event.metaKey && isMac)
     ) {
+      // 快捷键，可能触发多选
       this.parent.toggleSelected(this);
     } else {
       this.parent.setSelected(this);
