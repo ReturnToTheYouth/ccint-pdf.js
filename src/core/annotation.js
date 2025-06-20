@@ -4173,6 +4173,7 @@ class SquareAnnotation extends MarkupAnnotation {
     this.data.annotationType = AnnotationType.SQUARE;
     this.data.hasOwnCanvas = this.data.noRotate;
     this.data.noHTML = false;
+    this.data.isEditable = !this.data.noHTML;
 
     if (!this.appearance) {
       // The default stroke color is black.

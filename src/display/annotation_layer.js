@@ -2567,6 +2567,7 @@ class SquareAnnotationElement extends AnnotationElement {
 
   constructor(parameters) {
     super(parameters, { isRenderable: true, ignoreBorder: true });
+    this.annotationEditorType = AnnotationEditorType.AREAHIGHLIGHT;
   }
 
   render() {
@@ -2605,7 +2606,7 @@ class SquareAnnotationElement extends AnnotationElement {
     if (!data.popupRef && this.hasPopupData) {
       this._createPopup();
     }
-
+    this._editOnDoubleClick();
     return this.container;
   }
 
@@ -2981,7 +2982,6 @@ class StrikeOutAnnotationElement extends AnnotationElement {
     }
 
     this.container.classList.add("strikeoutAnnotation");
-    debugger
     this._editOnDoubleClick();
     return this.container;
   }
@@ -3369,6 +3369,7 @@ export {
   FreeTextAnnotationElement,
   HighlightAnnotationElement,
   InkAnnotationElement,
+  SquareAnnotationElement,
   StampAnnotationElement,
   StrikeOutAnnotationElement,
   UnderlineAnnotationElement,

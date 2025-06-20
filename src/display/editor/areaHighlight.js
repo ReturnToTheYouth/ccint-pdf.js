@@ -9,7 +9,7 @@ import {
 } from "../../shared/util.js";
 import { AnnotationEditor } from "./editor.js";
 import { bindEvents, getLeftTopCoord, KeyboardManager } from "./tools.js";
-import { HighlightAnnotationElement } from "../annotation_layer.js";
+import { SquareAnnotationElement } from "../annotation_layer.js";
 import { ColorPicker } from "./color_picker.js";
 
 /**
@@ -424,9 +424,9 @@ class AreaHighlightEditor extends AnnotationEditor {
   /** @inheritdoc */
   static async deserialize(data, parent, uiManager) {
     let initialData = null;
-    if (data instanceof HighlightAnnotationElement) {
+    if (data instanceof SquareAnnotationElement) {
       const {
-        data: { color, opacity, rect, id, popupRef },
+        data: { color, opacity, rect, id, popupRef, rotation },
         parent: {
           page: { pageNumber },
         },
@@ -441,6 +441,7 @@ class AreaHighlightEditor extends AnnotationEditor {
         annotationType: AnnotationEditorType.AREAHIGHLIGHT,
         color: Array.from(color),
         opacity,
+        rotation,
         pageIndex: pageNumber - 1,
         rect: rect.slice(0),
         id,
