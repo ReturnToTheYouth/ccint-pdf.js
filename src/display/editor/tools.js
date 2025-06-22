@@ -1028,7 +1028,7 @@ class AnnotationEditorUIManager {
   }
 
   // 下划线选择
-  underlineSelection(methodOfCreation = "") {
+  async underlineSelection(methodOfCreation = "") {
     const selection = document.getSelection();
     if (!selection || selection.isCollapsed) {
       return;
@@ -1059,16 +1059,24 @@ class AnnotationEditorUIManager {
       if (isNoneMode) {
         this.showAllEditors("underline", true, /* updateButton = */ true);
       }
+      if (methodOfCreation === "floating_button") {
+        // 手动关闭模式
+        this.addToEditLayerOnce(AnnotationEditorType.NONE);
+      }
     };
     if (isNoneMode && methodOfCreation !== "floating_button") {
       this.switchToMode(AnnotationEditorType.UNDERLINE, callback);
       return;
     }
+    // 如果是单次加了批注，需要激活、添加editor层
+    if (methodOfCreation === "floating_button") {
+      await this.addToEditLayerOnce(AnnotationEditorType.UNDERLINE);
+    }
     callback();
   }
 
   // 删除线选择
-  strikethroughSelection(methodOfCreation = "") {
+  async strikethroughSelection(methodOfCreation = "") {
     const selection = document.getSelection();
     if (!selection || selection.isCollapsed) {
       return;
@@ -1099,10 +1107,18 @@ class AnnotationEditorUIManager {
       if (isNoneMode) {
         this.showAllEditors("strikethrough", true, /* updateButton = */ true);
       }
+      if (methodOfCreation === "floating_button") {
+        // 手动关闭模式
+        this.addToEditLayerOnce(AnnotationEditorType.NONE);
+      }
     };
     if (isNoneMode && methodOfCreation !== "floating_button") {
       this.switchToMode(AnnotationEditorType.STRIKETHROUGH, callback);
       return;
+    }
+    // 如果是单次加了批注，需要激活、添加editor层
+    if (methodOfCreation === "floating_button") {
+      await this.addToEditLayerOnce(AnnotationEditorType.STRIKETHROUGH);
     }
     callback();
   }
@@ -1117,6 +1133,18 @@ class AnnotationEditorUIManager {
       source: this,
       mode,
     });
+  }
+
+  // 单次批注，使得editor处于编辑状态、可以正确添加editor
+  async addToEditLayerOnce(mode = AnnotationEditorType.NONE) {
+    this.setEditingState(true);
+    await this.#enableAll();
+    this.unselectAll();
+    for (const layer of this.#allLayers.values()) {
+      // 自定义的点击事件取消
+      layer.enableBlankUnselect();
+      layer.updateMode(mode);
+    }
   }
 
   setPreference(name, value) {
@@ -1208,7 +1236,7 @@ class AnnotationEditorUIManager {
     return null;
   }
 
-  highlightSelection(methodOfCreation = "") {
+  async highlightSelection(methodOfCreation = "") {
     const selection = document.getSelection();
     if (!selection || selection.isCollapsed) {
       return;
@@ -1239,11 +1267,20 @@ class AnnotationEditorUIManager {
       if (isNoneMode) {
         this.showAllEditors("highlight", true, /* updateButton = */ true);
       }
+
+      if (methodOfCreation === "floating_button") {
+        this.addToEditLayerOnce(AnnotationEditorType.NONE);
+      }
     };
     // 如果不是选中后的、popmenu操作的单次批注行为，则开启全局mode
     if (isNoneMode && methodOfCreation !== "floating_button") {
       this.switchToMode(AnnotationEditorType.HIGHLIGHT, callback);
       return;
+    }
+
+    // 如果是单次加了批注，需要激活、添加editor层
+    if (methodOfCreation === "floating_button") {
+      await this.addToEditLayerOnce(AnnotationEditorType.HIGHLIGHT);
     }
     callback();
   }
@@ -1844,14 +1881,8 @@ class AnnotationEditorUIManager {
   }
 
   async switchEditor(mode, editId = null) {
-    this.setEditingState(true);
-    await this.#enableAll();
-    this.unselectAll();
-    for (const layer of this.#allLayers.values()) {
-      // // 自定义的点击事件取消
-      layer.enableBlankUnselect();
-      layer.updateMode();
-    }
+    // 关闭模式，但是保证编辑器可激活
+    await this.addToEditLayerOnce(AnnotationEditorType.NONE);
     for (const editor of this.#allEditors.values()) {
       if (editor.annotationElementId === editId) {
         this.setSelected(editor);
