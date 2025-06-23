@@ -128,6 +128,21 @@ function createLinkAnnotation({ url, index, length }, pdfPageView, id) {
   };
 }
 
+// URL.canParse polyfill for older browsers
+function canParseURL(url) {
+  if (typeof URL !== "undefined" && URL.canParse) {
+    return URL.canParse(url);
+  }
+  // Fallback for older browsers
+  try {
+    // eslint-disable-next-line no-new
+    new URL(url);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 class Autolinker {
   static #index = 0;
 
@@ -135,8 +150,9 @@ class Autolinker {
 
   static findLinks(text) {
     // Regex can be tested and verified at https://regex101.com/r/rXoLiT/2.
+    // 简化正则表达式以支持老版本浏览器，移除 ES2024 特性
     this.#regex ??=
-      /\b(?:https?:\/\/|mailto:|www\.)(?:[\S--[\p{P}<>]]|\/|[\S--[\[\]]]+[\S--[\p{P}<>]])+|\b[\S--[@\p{Ps}\p{Pe}<>]]+@([\S--[\p{P}<>]]+(?:\.[\S--[\p{P}<>]]+)+)/gmv;
+      /\b(?:https?:\/\/|mailto:|www\.)(?:[^\s\p{P}<>]|\/|[^\s[\]]+[^\s\p{P}<>])+|\b[^\s@\p{Ps}\p{Pe}<>]+@([^\s\p{P}<>]+(?:\.[^\s\p{P}<>]+)+)/gmu;
 
     const [normalizedText, diffs] = normalize(text);
     const matches = normalizedText.matchAll(this.#regex);
@@ -150,7 +166,7 @@ class Autolinker {
         url.startsWith("https://")
       ) {
         raw = url;
-      } else if (URL.canParse(`http://${emailDomain}`)) {
+      } else if (canParseURL(`http://${emailDomain}`)) {
         raw = url.startsWith("mailto:") ? url : `mailto:${url}`;
       } else {
         continue;

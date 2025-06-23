@@ -21,6 +21,9 @@ import {
   stopEvent,
   SupportedImageMimeTypes,
 } from "pdfjs-lib";
+import { ensureAbortSignalAny } from "../src/shared/url_parse_polyfill.js";
+
+ensureAbortSignalAny();
 
 // Default height of the added signature in page coordinates.
 const DEFAULT_HEIGHT_IN_PAGE = 40;

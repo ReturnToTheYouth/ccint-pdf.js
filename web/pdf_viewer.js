@@ -68,6 +68,9 @@ import { GenericL10n } from "web-null_l10n";
 import { PDFPageView } from "./pdf_page_view.js";
 import { PDFRenderingQueue } from "./pdf_rendering_queue.js";
 import { SimpleLinkService } from "./pdf_link_service.js";
+import { ensureAbortSignalAny } from "../src/shared/url_parse_polyfill.js";
+
+ensureAbortSignalAny();
 
 const DEFAULT_CACHE_SIZE = 10;
 

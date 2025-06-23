@@ -21,7 +21,7 @@
 /** @typedef {import("./display/api").PDFPageProxy} PDFPageProxy */
 /** @typedef {import("./display/api").RenderTask} RenderTask */
 /** @typedef {import("./display/display_utils").PageViewport} PageViewport */
-
+import "./shared/url_parse_polyfill.js";
 import {
   AbortException,
   AnnotationEditorParamsType,

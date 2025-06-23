@@ -14,6 +14,9 @@
  */
 
 import { OutputScale, stopEvent } from "./display_utils.js";
+import { ensureAbortSignalAny } from "../shared/url_parse_polyfill.js";
+
+ensureAbortSignalAny();
 
 class TouchManager {
   #container;

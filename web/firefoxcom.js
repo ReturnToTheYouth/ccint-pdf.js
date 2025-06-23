@@ -19,12 +19,15 @@ import { BaseExternalServices } from "./external_services.js";
 import { BasePreferences } from "./preferences.js";
 import { DEFAULT_SCALE_VALUE } from "./ui_utils.js";
 import { L10n } from "./l10n.js";
+import { ensureAbortSignalAny } from "../src/shared/url_parse_polyfill.js";
 
 if (typeof PDFJSDev === "undefined" || !PDFJSDev.test("MOZCENTRAL")) {
   throw new Error(
     'Module "./firefoxcom.js" shall not be used outside MOZCENTRAL builds.'
   );
 }
+
+ensureAbortSignalAny();
 
 let viewerApp = { initialized: false };
 function initCom(app) {

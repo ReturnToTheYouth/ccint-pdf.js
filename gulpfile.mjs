@@ -89,6 +89,17 @@ const ENV_TARGETS = [
   "not dead",
 ];
 
+// Legacy targets for better browser compatibility
+const LEGACY_ENV_TARGETS = [
+  "Chrome >= 63", // 支持基本的 ES2018
+  "Firefox >= 67", // 支持基本的 ES2018
+  "Safari >= 11.1", // 支持基本的 ES2018
+  "Edge >= 79", // 基于 Chromium 的 Edge
+  "> 0.5%",
+  "not dead",
+  "not IE > 0",
+];
+
 // Default Autoprefixer config used for generic, components, minified-pre
 const AUTOPREFIXER_CONFIG = {
   overrideBrowserslist: ENV_TARGETS,
@@ -101,6 +112,15 @@ const BABEL_PRESET_ENV_OPTS = Object.freeze({
   exclude: ["web.structured-clone"],
   shippedProposals: true,
   useBuiltIns: "usage",
+});
+
+// Legacy Babel configuration with more comprehensive transformations
+const BABEL_PRESET_ENV_LEGACY_OPTS = Object.freeze({
+  corejs: "3.41.0",
+  exclude: ["web.structured-clone"], // 排除不需要的特性
+  shippedProposals: false, // 禁用提案特性以获得更好的兼容性
+  useBuiltIns: "usage", // 按需引入 polyfill
+  targets: LEGACY_ENV_TARGETS.join(", "),
 });
 
 const DEFINES = Object.freeze({
@@ -320,9 +340,22 @@ function createWebpackConfig(
     /node_modules[\\/]core-js/,
   ];
 
+  // 为 legacy 构建使用更严格的 Babel 转换
+  const isLegacyBuild =
+    !skipBabel &&
+    (bundleDefines.GENERIC ||
+      bundleDefines.COMPONENTS ||
+      bundleDefines.MINIFIED) &&
+    !bundleDefines.SKIP_BABEL;
+
   const babelPresets = skipBabel
     ? undefined
-    : [["@babel/preset-env", BABEL_PRESET_ENV_OPTS]];
+    : [
+        [
+          "@babel/preset-env",
+          isLegacyBuild ? BABEL_PRESET_ENV_LEGACY_OPTS : BABEL_PRESET_ENV_OPTS,
+        ],
+      ];
   const babelPlugins = [
     [
       babelPluginPDFJSPreprocessor,
@@ -332,6 +365,20 @@ function createWebpackConfig(
       },
     ],
   ];
+
+  // 为 legacy 构建添加额外的兼容性插件
+  if (isLegacyBuild) {
+    // 添加 transform-runtime 来减少代码重复和提供 polyfill
+    babelPlugins.push([
+      "@babel/plugin-transform-runtime",
+      {
+        corejs: 3, // 使用 corejs 3 提供 polyfill
+        helpers: true, // 提取 helper 函数
+        regenerator: true, // 支持 async/await
+        useESModules: true, // 使用 ES 模块版本的 runtime
+      },
+    ]);
+  }
 
   const plugins = [];
   if (!disableLicenseHeader) {

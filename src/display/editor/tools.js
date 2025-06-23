@@ -35,6 +35,9 @@ import {
   stopEvent,
 } from "../display_utils.js";
 import { HighlightToolbar } from "./toolbar.js";
+import { ensureAbortSignalAny } from "../../shared/url_parse_polyfill.js";
+
+ensureAbortSignalAny();
 
 function bindEvents(obj, element, names) {
   for (const name of names) {

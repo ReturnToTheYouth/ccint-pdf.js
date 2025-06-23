@@ -67,9 +67,9 @@ import { PDFDataTransportStream } from "./transport_stream.js";
 import { PDFFetchStream } from "display-fetch_stream";
 import { PDFNetworkStream } from "display-network";
 import { PDFNodeStream } from "display-node_stream";
+import { parseURL } from "../shared/url_parse_polyfill.js";
 import { TextLayer } from "./text_layer.js";
 import { XfaText } from "./xfa_text.js";
-import { parseURL } from "../shared/url_parse_polyfill.js";
 
 const DEFAULT_RANGE_CHUNK_SIZE = 65536; // 2^16 = 65536
 const RENDERING_CANCELLED_TIMEOUT = 100; // ms
