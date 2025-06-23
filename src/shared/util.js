@@ -25,6 +25,8 @@ const isNodeJS =
   !process.versions.nw &&
   !(process.versions.electron && process.type && process.type !== "browser");
 
+import { parseURL } from "./url_parse_polyfill.js";
+
 const FONT_IDENTITY_MATRIX = [0.001, 0, 0, 0.001, 0, 0];
 
 // Represent the percentage of the height of a single-line field over
@@ -460,7 +462,7 @@ function createValidAbsoluteUrl(url, baseUrl = null, options = null) {
     }
   }
 
-  const absoluteUrl = baseUrl ? URL.parse(url, baseUrl) : URL.parse(url);
+  const absoluteUrl = baseUrl ? parseURL(url, baseUrl) : parseURL(url);
   return _isValidProtocol(absoluteUrl) ? absoluteUrl : null;
 }
 
@@ -473,7 +475,7 @@ function createValidAbsoluteUrl(url, baseUrl = null, options = null) {
  * @returns {string} The resulting URL string.
  */
 function updateUrlHash(url, hash, allowRel = false) {
-  const res = URL.parse(url);
+  const res = parseURL(url);
   if (res) {
     res.hash = hash;
     return res.href;

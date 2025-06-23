@@ -16,6 +16,7 @@
 import { assert, ResponseException } from "../shared/util.js";
 import { getFilenameFromContentDispositionHeader } from "./content_disposition.js";
 import { isPdfFile } from "./display_utils.js";
+import { parseURL } from "../shared/url_parse_polyfill.js";
 
 function createHeaders(isHttp, httpHeaders) {
   const headers = new Headers();
@@ -34,7 +35,7 @@ function createHeaders(isHttp, httpHeaders) {
 
 function getResponseOrigin(url) {
   // Notably, null is distinct from "null" string (e.g. from file:-URLs).
-  return URL.parse(url)?.origin ?? null;
+  return parseURL(url)?.origin ?? null;
 }
 
 function validateRangeRequestCapabilities({

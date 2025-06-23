@@ -95,6 +95,8 @@ import { SecondaryToolbar } from "web-secondary_toolbar";
 import { SignatureManager } from "web-signature_manager";
 import { Toolbar } from "web-toolbar";
 import { ViewHistory } from "./view_history.js";
+// eslint-disable-next-line sort-imports
+import { parseURL } from "../src/shared/url_parse_polyfill.js";
 
 const FORCE_PAGES_LOADED_TIMEOUT = 10000; // ms
 
@@ -2299,12 +2301,12 @@ if (typeof PDFJSDev === "undefined" || PDFJSDev.test("GENERIC")) {
     if (!file) {
       return;
     }
-    const viewerOrigin = URL.parse(window.location)?.origin || "null";
+    const viewerOrigin = parseURL(window.location)?.origin || "null";
     if (HOSTED_VIEWER_ORIGINS.has(viewerOrigin)) {
       // Hosted or local viewer, allow for any file locations
       return;
     }
-    const fileOrigin = URL.parse(file, window.location)?.origin;
+    const fileOrigin = parseURL(file, window.location)?.origin;
     if (fileOrigin === viewerOrigin) {
       return;
     }

@@ -69,6 +69,7 @@ import { PDFNetworkStream } from "display-network";
 import { PDFNodeStream } from "display-node_stream";
 import { TextLayer } from "./text_layer.js";
 import { XfaText } from "./xfa_text.js";
+import { parseURL } from "../shared/url_parse_polyfill.js";
 
 const DEFAULT_RANGE_CHUNK_SIZE = 65536; // 2^16 = 65536
 const RENDERING_CANCELLED_TIMEOUT = 100; // ms
@@ -544,7 +545,7 @@ function getUrlProp(val) {
     }
 
     // The full path is required in the 'url' field.
-    const url = URL.parse(val, window.location);
+    const url = parseURL(val, window.location);
     if (url) {
       return url.href;
     }
@@ -2117,7 +2118,7 @@ class PDFWorker {
       // Check if URLs have the same origin. For non-HTTP based URLs, returns
       // false.
       this._isSameOrigin = (baseUrl, otherUrl) => {
-        const base = URL.parse(baseUrl);
+        const base = parseURL(baseUrl);
         if (!base?.origin || base.origin === "null") {
           return false; // non-HTTP url
         }
