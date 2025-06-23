@@ -24,7 +24,7 @@
   --outline-around-color: #00b796;
   --hover-outline-around-color: var(--outline-around-color);
   --focus-outline: solid var(--outline-width) var(--outline-color);
-  --unfocus-outline: solid var(--outline-width) transparent;
+  --unfocus-outline: solid var(--outline-around-width) transparent;
   --focus-outline-around: solid var(--outline-around-width)
     var(--outline-around-color);
   --hover-outline-color: #00b796;
