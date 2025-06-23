@@ -258,9 +258,10 @@ class AreaHighlightEditor extends AnnotationEditor {
 
     this.originWidth = width;
     this.originHeight = height;
-
-    this.div.style.left = left + "px";
-    this.div.style.top = top + "px";
+    const parentWidth = this.div.parentNode.clientWidth;
+    const parentHeight = this.div.parentNode.clientHeight;
+    this.div.style.left = (left / parentWidth) * 100 + "%";
+    this.div.style.top = (top / parentHeight) * 100 + "%";
     this.div.style.width = width + "px";
     this.div.style.height = height + "px";
   }
@@ -293,8 +294,8 @@ class AreaHighlightEditor extends AnnotationEditor {
   }
 
   postConfirm() {
-    const parentWidth = this.div.parentNode.scrollWidth;
-    const parentHeight = this.div.parentNode.scrollHeight;
+    const parentWidth = this.div.parentNode.clientWidth;
+    const parentHeight = this.div.parentNode.clientHeight;
     this.width = (1.0 * this.originWidth) / parentWidth;
     this.height = (1.0 * this.originHeight) / parentHeight;
     this.adaptSize();
