@@ -952,6 +952,8 @@ class FreeTextEditor extends AnnotationEditor {
     }
     for (const line of this.#content.split("\n")) {
       const div = document.createElement("div");
+      // 文本内容的div优先继承父元素的样式
+      div.style.fontSize = "inherit";
       div.append(
         line ? document.createTextNode(line) : document.createElement("br")
       );
