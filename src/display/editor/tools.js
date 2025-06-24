@@ -1953,9 +1953,13 @@ class AnnotationEditorUIManager {
         this.showAllEditors("highlight", value);
         break;
     }
+
+    // 修改 激活的、已选中的 editor的批注参数属性
     for (const editor of this.#selectedEditors) {
       editor.updateParams(type, value);
     }
+
+    // 修改 全局默认的批注属性 ，当准备新创建editor时进入
     for (const editorType of this.#editorTypes) {
       editorType.updateDefaultParams(type, value);
     }

@@ -133,7 +133,16 @@ class StrikethroughEditor extends AnnotationEditor {
     AnnotationEditor.initialize(l10n);
   }
 
-  static updateDefaultParams() {}
+  static updateDefaultParams(type, value) {
+    switch (type) {
+      case AnnotationEditorParamsType.STRIKETHROUGH_COLOR:
+        StrikethroughEditor._defaultColor = value;
+        break;
+      case AnnotationEditorParamsType.STRIKETHROUGH_OPACITY:
+        StrikethroughEditor._defaultOpacity = value;
+        break;
+    }
+  }
 
   /** @inheritdoc */
   get toolbarPosition() {
