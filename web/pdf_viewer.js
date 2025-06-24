@@ -411,6 +411,10 @@ class PDFViewer {
     return this._pages.length;
   }
 
+  get annotationEditorUIManager() {
+    return this.#annotationEditorUIManager;
+  }
+
   getPageView(index) {
     return this._pages[index];
   }

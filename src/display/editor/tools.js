@@ -388,6 +388,29 @@ class CommandManager {
   }
 
   /**
+   * Undo all commands at once.
+   */
+  undoAll() {
+    if (this.#position === -1) {
+      // Nothing to undo.
+      return;
+    }
+
+    // Avoid to insert something during the undo execution.
+    this.#locked = true;
+
+    // Execute all undo commands from current position to the beginning
+    for (let i = this.#position; i >= 0; i--) {
+      const { undo, post } = this.#commands[i];
+      undo();
+      post?.();
+    }
+
+    this.#locked = false;
+    this.#position = -1;
+  }
+
+  /**
    * Redo the last command.
    */
   redo() {
@@ -2271,6 +2294,19 @@ class AnnotationEditorUIManager {
     this.#commandManager.undo();
     this.#dispatchUpdateStates({
       hasSomethingToUndo: this.#commandManager.hasSomethingToUndo(),
+      hasSomethingToRedo: true,
+      isEmpty: this.#isEmpty(),
+    });
+    this._editorUndoBar?.hide();
+  }
+
+  /**
+   * Undo all commands at once.
+   */
+  undoAll() {
+    this.#commandManager.undoAll();
+    this.#dispatchUpdateStates({
+      hasSomethingToUndo: false,
       hasSomethingToRedo: true,
       isEmpty: this.#isEmpty(),
     });
