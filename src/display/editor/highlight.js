@@ -272,6 +272,7 @@ class HighlightEditor extends AnnotationEditor {
   }
 
   /** @inheritdoc */
+  // 用于记录画笔此时的全局状态
   static updateDefaultParams(type, value) {
     switch (type) {
       case AnnotationEditorParamsType.HIGHLIGHT_DEFAULT_COLOR:
@@ -279,6 +280,12 @@ class HighlightEditor extends AnnotationEditor {
         break;
       case AnnotationEditorParamsType.HIGHLIGHT_THICKNESS:
         HighlightEditor._defaultThickness = value;
+        break;
+      case AnnotationEditorParamsType.HIGHLIGHT_OPACITY:
+        HighlightEditor._defaultOpacity = value;
+        break;
+      case AnnotationEditorParamsType.HIGHLIGHT_COLOR:
+        HighlightEditor._defaultColor = value;
         break;
     }
   }
@@ -292,6 +299,7 @@ class HighlightEditor extends AnnotationEditor {
   }
 
   /** @inheritdoc */
+  // 改变选中editor的批注参数属性
   updateParams(type, value) {
     switch (type) {
       case AnnotationEditorParamsType.HIGHLIGHT_COLOR:

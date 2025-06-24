@@ -159,7 +159,16 @@ class UnderlineEditor extends AnnotationEditor {
   }
 
   /** @inheritdoc */
-  static updateDefaultParams(type, value) {}
+  static updateDefaultParams(type, value) {
+    switch (type) {
+      case AnnotationEditorParamsType.UNDERLINE_COLOR:
+        UnderlineEditor._defaultColor = value;
+        break;
+      case AnnotationEditorParamsType.UNDERLINE_OPACITY:
+        UnderlineEditor._defaultOpacity = value;
+        break;
+    }
+  }
 
   /** @inheritdoc */
   translateInPage(x, y) {}
