@@ -60,7 +60,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/mozilla/pdf.js.git"
+    "url": "https://github.com/ReturnToTheYouth/ccint-pdf.js.git"
   },
   "engines": {
     "node": ">=20.16.0 || >=22.3.0"
