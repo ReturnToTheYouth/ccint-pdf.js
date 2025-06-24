@@ -116,6 +116,10 @@ class AreaHighlightEditor extends AnnotationEditor {
     return this.#opacity;
   }
 
+  get color() {
+    return this.#color;
+  }
+
   /** @inheritdoc */
   updateParams(type, value) {
     switch (type) {
