@@ -119,6 +119,10 @@ class UnderlineEditor extends AnnotationEditor {
     };
   }
 
+  get opacity() {
+    return this.#opacity;
+  }
+
   /** @inheritdoc */
   get telemetryFinalData() {
     return {

@@ -140,6 +140,10 @@ class StrikethroughEditor extends AnnotationEditor {
     return this.#lastPoint;
   }
 
+  get opacity() {
+    return this.#opacity;
+  }
+
   getBoxes() {
     return this.#boxes;
   }
