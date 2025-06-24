@@ -518,6 +518,10 @@
   font: 10px sans-serif;
   line-height: var(--freetext-line-height);
   user-select: none;
+
+  div:not([class]) {
+    font-size: inherit;
+  }
 }
 
 .annotationEditorLayer .freeTextEditor .overlay {
