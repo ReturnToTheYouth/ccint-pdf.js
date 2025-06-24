@@ -1092,6 +1092,7 @@ class FreeTextEditor extends AnnotationEditor {
     content.replaceChildren();
     for (const line of this.#content.split("\n")) {
       const div = document.createElement("div");
+      div.style.fontSize = "inherit";
       div.append(
         line ? document.createTextNode(line) : document.createElement("br")
       );
