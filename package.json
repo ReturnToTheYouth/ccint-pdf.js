@@ -1,5 +1,5 @@
 {
-  "name": "pdf.js",
+  "name": "@ccint/pdf.js",
   "type": "module",
   "devDependencies": {
     "@babel/core": "^7.26.10",
