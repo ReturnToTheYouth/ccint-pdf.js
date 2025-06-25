@@ -889,7 +889,7 @@ class AnnotationEditorUIManager {
     eventBus._on("setpreference", this.onSetPreference.bind(this), { signal });
     eventBus._on(
       "switchannotationeditorparams",
-      evt => this.updateParams(evt.type, evt.value),
+      evt => this.updateParams(evt.type, evt.value, evt.fromGlobal),
       { signal }
     );
     this.#addSelectionListener();
@@ -1949,7 +1949,7 @@ class AnnotationEditorUIManager {
    * @param {number} type
    * @param {*} value
    */
-  updateParams(type, value) {
+  updateParams(type, value, fromGlobal = true) {
     if (!this.#editorTypes) {
       return;
     }
@@ -1981,10 +1981,12 @@ class AnnotationEditorUIManager {
     for (const editor of this.#selectedEditors) {
       editor.updateParams(type, value);
     }
-
-    // 修改 全局默认的批注属性 ，当准备新创建editor时进入
-    for (const editorType of this.#editorTypes) {
-      editorType.updateDefaultParams(type, value);
+    // 如果从全局面板来的，就执行
+    if (fromGlobal) {
+      // 修改 全局默认的批注属性 ，当准备新创建editor时进入
+      for (const editorType of this.#editorTypes) {
+        editorType.updateDefaultParams(type, value);
+      }
     }
   }
 
