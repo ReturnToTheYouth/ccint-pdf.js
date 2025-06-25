@@ -1024,6 +1024,14 @@ class FreeTextEditor extends AnnotationEditor {
     return this.editorDiv;
   }
 
+  get content() {
+    return this.#content;
+  }
+
+  get color() {
+    return this.#color;
+  }
+
   /** @inheritdoc */
   static async deserialize(data, parent, uiManager) {
     let initialData = null;
