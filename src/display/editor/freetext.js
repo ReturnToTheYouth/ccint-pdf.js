@@ -17,6 +17,7 @@
 /** @typedef {import("./annotation_editor_layer.js").AnnotationEditorLayer} AnnotationEditorLayer */
 
 import {
+  addOpacityToColor,
   AnnotationEditorParamsType,
   AnnotationEditorType,
   assert,
@@ -48,6 +49,8 @@ class FreeTextEditor extends AnnotationEditor {
 
   #fontSize;
 
+  opacity;
+
   #textParams = {
     bold: false,
     italic: false,
@@ -63,6 +66,8 @@ class FreeTextEditor extends AnnotationEditor {
   static _defaultColor = "#000000";
 
   static _defaultFontSize = 10;
+
+  static _defaultOpacity = 1;
 
   static _defaultTextParams = {
     bold: false,
@@ -151,6 +156,7 @@ class FreeTextEditor extends AnnotationEditor {
       FreeTextEditor._defaultColor ||
       AnnotationEditor._defaultLineColor;
     this.#fontSize = params.fontSize || FreeTextEditor._defaultFontSize;
+    this.opacity = params.opacity || FreeTextEditor._defaultOpacity;
     this.#textParams = params.textParams || {
       ...FreeTextEditor._defaultTextParams,
     };
@@ -186,6 +192,9 @@ class FreeTextEditor extends AnnotationEditor {
       case AnnotationEditorParamsType.FREETEXT_COLOR:
         FreeTextEditor._defaultColor = value;
         break;
+      case AnnotationEditorParamsType.FREETEXT_OPACITY:
+        FreeTextEditor._defaultOpacity = value;
+        break;
       case AnnotationEditorParamsType.FREETEXT_BOLD:
         FreeTextEditor._defaultTextParams.bold = value;
         break;
@@ -212,6 +221,9 @@ class FreeTextEditor extends AnnotationEditor {
         break;
       case AnnotationEditorParamsType.FREETEXT_COLOR:
         this.#updateColor(value);
+        break;
+      case AnnotationEditorParamsType.FREETEXT_OPACITY:
+        this.#updateOpacity(value);
         break;
       case AnnotationEditorParamsType.FREETEXT_BOLD:
         this.#updateBold(value);
@@ -243,6 +255,10 @@ class FreeTextEditor extends AnnotationEditor {
         FreeTextEditor._defaultColor || AnnotationEditor._defaultLineColor,
       ],
       [
+        AnnotationEditorParamsType.FREETEXT_OPACITY,
+        FreeTextEditor._defaultOpacity,
+      ],
+      [
         AnnotationEditorParamsType.FREETEXT_BOLD,
         FreeTextEditor._defaultTextParams.bold,
       ],
@@ -268,8 +284,18 @@ class FreeTextEditor extends AnnotationEditor {
   /** @inheritdoc */
   get propertiesToUpdate() {
     return [
-      [AnnotationEditorParamsType.FREETEXT_SIZE, this.#fontSize],
-      [AnnotationEditorParamsType.FREETEXT_COLOR, this.#color],
+      [
+        AnnotationEditorParamsType.FREETEXT_SIZE,
+        this.#fontSize || FreeTextEditor._defaultFontSize,
+      ],
+      [
+        AnnotationEditorParamsType.FREETEXT_COLOR,
+        this.#color || FreeTextEditor._defaultColor,
+      ],
+      [
+        AnnotationEditorParamsType.FREETEXT_OPACITY,
+        this.opacity || FreeTextEditor._defaultOpacity,
+      ],
       [AnnotationEditorParamsType.FREETEXT_BOLD, this.#textParams.bold],
       [AnnotationEditorParamsType.FREETEXT_ITALIC, this.#textParams.italic],
       [
@@ -316,7 +342,10 @@ class FreeTextEditor extends AnnotationEditor {
    */
   #updateColor(color) {
     const setColor = col => {
-      this.#color = this.editorDiv.style.color = col;
+      this.#color = this.editorDiv.style.color = addOpacityToColor(
+        col,
+        this.opacity
+      );
     };
     const savedColor = this.#color;
     this.addCommands({
@@ -325,6 +354,27 @@ class FreeTextEditor extends AnnotationEditor {
       post: this._uiManager.updateUI.bind(this._uiManager, this),
       mustExec: true,
       type: AnnotationEditorParamsType.FREETEXT_COLOR,
+      overwriteIfSameType: true,
+      keepUndo: true,
+    });
+  }
+
+  /**
+   * Update the opacity and make this action undoable.
+   * @param {number} opacity
+   */
+  #updateOpacity(opacity) {
+    const setOpacity = opa => {
+      this.editorDiv.style.color = addOpacityToColor(this.#color, opa);
+      this.opacity = opa;
+    };
+    const savedOpacity = this.opacity;
+    this.addCommands({
+      cmd: setOpacity.bind(this, opacity),
+      undo: setOpacity.bind(this, savedOpacity),
+      post: this._uiManager.updateUI.bind(this._uiManager, this),
+      mustExec: true,
+      type: AnnotationEditorParamsType.FREETEXT_OPACITY,
       overwriteIfSameType: true,
       keepUndo: true,
     });
