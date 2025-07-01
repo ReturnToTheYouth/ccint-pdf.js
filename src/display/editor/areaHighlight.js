@@ -24,9 +24,9 @@ class AreaHighlightEditor extends AnnotationEditor {
 
   static _internalPadding = 0;
 
-  static _defaultColor = "#F9F936";
+  static _defaultColor = "#F7D04A";
 
-  static _defaultOpacity = 0.5;
+  static _defaultOpacity = 0.3;
 
   static get _keyboardManager() {
     const proto = AreaHighlightEditor.prototype;

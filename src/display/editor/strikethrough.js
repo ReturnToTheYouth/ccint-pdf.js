@@ -70,7 +70,7 @@ class StrikethroughEditor extends AnnotationEditor {
 
   static _l10nPromise;
 
-  static _defaultColor = "#FF0000";
+  static _defaultColor = "#F74A4A";
 
   static _defaultOpacity = 1;
 

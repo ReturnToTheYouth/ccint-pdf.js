@@ -72,9 +72,9 @@ class HighlightEditor extends AnnotationEditor {
 
   #methodOfCreation = "";
 
-  static _defaultColor = null;
+  static _defaultColor = "#F7D04A";
 
-  static _defaultOpacity = 0.5;
+  static _defaultOpacity = 0.3;
 
   static _defaultThickness = 12;
 
@@ -272,7 +272,7 @@ class HighlightEditor extends AnnotationEditor {
   static initialize(l10n, uiManager) {
     AnnotationEditor.initialize(l10n, uiManager);
     HighlightEditor._defaultColor ||=
-      uiManager.highlightColors?.values().next().value || "#F5BA18";
+      uiManager.highlightColors?.values().next().value || "#F7D04A";
   }
 
   /** @inheritdoc */

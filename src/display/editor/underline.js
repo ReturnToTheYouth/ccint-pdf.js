@@ -65,7 +65,7 @@ class UnderlineEditor extends AnnotationEditor {
 
   #methodOfCreation = "";
 
-  static _defaultColor = "#FF0000";
+  static _defaultColor = "#F74A4A";
 
   static _defaultOpacity = 1;
 
