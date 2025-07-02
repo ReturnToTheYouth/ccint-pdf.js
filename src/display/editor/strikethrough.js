@@ -88,6 +88,8 @@ class StrikethroughEditor extends AnnotationEditor {
     this.selectedText = params.selectedText;
     this.#methodOfCreation = params.methodOfCreation || "";
     this.#text = params.text || "";
+    this.color = params.color || StrikethroughEditor._defaultColor;
+    this.#opacity = params.opacity || StrikethroughEditor._defaultOpacity;
 
     if (this.#boxes) {
       this.#anchorNode = params.anchorNode;
@@ -369,7 +371,11 @@ class StrikethroughEditor extends AnnotationEditor {
       return;
     }
     // 第一个是画本体
-    this.#ids = parent.drawLayer.drawLine(this.#lineBoxes, 0.55, this.color);
+    this.#ids = parent.drawLayer.drawLine(
+      this.#lineBoxes,
+      0.55,
+      addOpacityToColor(this.color, this.#opacity)
+    );
 
     // 第二个是画轮廓 画轮廓的要留着，画本体的要改掉
     const ret = parent.drawLayer.lineOutline(this.#focusOutlines);

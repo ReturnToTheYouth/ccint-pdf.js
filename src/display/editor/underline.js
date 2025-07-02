@@ -408,7 +408,11 @@ class UnderlineEditor extends AnnotationEditor {
       return;
     }
     // 第一个是画本体
-    this.#ids = parent.drawLayer.drawLine(this.#lineBoxes, 0.85, this.color);
+    this.#ids = parent.drawLayer.drawLine(
+      this.#lineBoxes,
+      0.85,
+      addOpacityToColor(this.color, this.#opacity)
+    );
     this.#outlineId = parent.drawLayer.drawOutline(
       {
         rootClass: {
