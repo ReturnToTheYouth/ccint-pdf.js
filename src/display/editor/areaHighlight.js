@@ -376,10 +376,10 @@ class AreaHighlightEditor extends AnnotationEditor {
   /** @inheritdoc */
   remove() {
     this.isEditing = false;
-    if (this.parent) {
-      this.parent.setEditingState(true);
-      this.parent.div.classList.add("areaHighlightEditing");
-    }
+    // if (this.parent) {
+    //   this.parent.setEditingState(true);
+    //   this.parent.div.classList.add("areaHighlightEditing");
+    // }
     super.remove();
   }
 
