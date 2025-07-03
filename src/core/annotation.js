@@ -4796,6 +4796,7 @@ class UnderlineAnnotation extends MarkupAnnotation {
           ? getPdfColorArray(this.color)
           : [0, 0, 0];
         const strokeAlpha = dict.get("CA");
+        this.data.opacity = strokeAlpha || 1;
 
         // The values 0.571 and 1.3 below corresponds to what Acrobat is doing.
         this._setDefaultAppearance({
@@ -4879,6 +4880,7 @@ class StrikeOutAnnotation extends MarkupAnnotation {
           ? getPdfColorArray(this.color)
           : [0, 0, 0];
         const strokeAlpha = dict.get("CA");
+        this.data.opacity = strokeAlpha || 1;
 
         this._setDefaultAppearance({
           xref,
