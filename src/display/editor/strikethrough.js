@@ -590,6 +590,17 @@ class StrikethroughEditor extends AnnotationEditor {
     return editor;
   }
 
+  #getRotation() {
+    // Highlight annotations are always drawn horizontally but if
+    // a free highlight annotation can be rotated.
+    return 0;
+  }
+
+  #hasElementChanged(serialized) {
+    const { color } = this._initialData;
+    return serialized.color.some((c, i) => c !== color[i]);
+  }
+
   /** @inheritdoc */
   serialize(isForCopying = false) {
     // It doesn't make sense to copy/paste a strikethrough annotation.
@@ -597,17 +608,29 @@ class StrikethroughEditor extends AnnotationEditor {
       return null;
     }
 
+    if (this.deleted) {
+      return this.serializeDeleted();
+    }
     const rect = this.getRect(0, 0);
+    const color = AnnotationEditor._colorManager.convert(this.color);
 
-    return {
+    const serialized = {
       annotationType: AnnotationEditorType.STRIKETHROUGH,
+      color,
+      opacity: this.#opacity,
       quadPoints: this.#serializeBoxes(),
       outlines: this.#serializeOutlines(),
       pageIndex: this.pageIndex,
       rect,
-      rotation: 0,
+      rotation: this.#getRotation(),
       structTreeParentId: this._structTreeParentId,
     };
+
+    if (this.annotationElementId && !this.#hasElementChanged(serialized)) {
+      return null;
+    }
+    serialized.id = this.annotationElementId;
+    return serialized;
   }
 
   static canCreateNewEmptyEditor() {
