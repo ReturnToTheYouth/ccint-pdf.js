@@ -441,6 +441,13 @@ class AnnotationEditorLayer {
         target.classList.contains("endOfContent")) &&
         this.#textLayer.div.contains(target))
     ) {
+      // 新增：判断是否有文字被选中
+      const selection = window.getSelection();
+      if (!selection || selection.isCollapsed || !selection.toString().trim()) {
+        // 没有选中文字，禁止高亮
+        return;
+      }
+
       const { isMac } = FeatureTest.platform;
       if (event.button !== 0 || (event.ctrlKey && isMac)) {
         // Do nothing on right click.
