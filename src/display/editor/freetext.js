@@ -821,7 +821,7 @@ class FreeTextEditor extends AnnotationEditor {
 
     const { style } = this.editorDiv;
     style.fontSize = `calc(${this.#fontSize}px * var(--total-scale-factor))`;
-    style.color = this.#color;
+    style.color = addOpacityToColor(this.#color, this.opacity);
     // --- 设置字体样式 ---
     style.fontWeight = this.#textParams.bold ? "bold" : "normal";
     style.fontStyle = this.#textParams.italic ? "italic" : "normal";
