@@ -1702,12 +1702,13 @@ class AnnotationEditorUIManager {
     if (!this.isShiftKeyDown && event.key === "Shift") {
       this.isShiftKeyDown = true;
     }
-    if (
-      this.#mode !== AnnotationEditorType.NONE &&
-      !this.isEditorHandlingKeyboard
-    ) {
-      AnnotationEditorUIManager._keyboardManager.exec(this, event);
-    }
+    // if (
+    //   this.#mode !== AnnotationEditorType.NONE &&
+    //   !this.isEditorHandlingKeyboard
+    // ) {
+    //   AnnotationEditorUIManager._keyboardManager.exec(this, event);
+    // }
+    AnnotationEditorUIManager._keyboardManager.exec(this, event);
   }
 
   /**

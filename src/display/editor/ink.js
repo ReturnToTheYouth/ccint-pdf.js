@@ -71,6 +71,10 @@ class InkEditor extends DrawingEditor {
     this.defaultL10nId = "pdfjs-editor-ink-editor";
   }
 
+  getDefaultDrawingOptions() {
+    return this.constructor._defaultDrawingOptions;
+  }
+
   /** @inheritdoc */
   static initialize(l10n, uiManager) {
     AnnotationEditor.initialize(l10n, uiManager);
