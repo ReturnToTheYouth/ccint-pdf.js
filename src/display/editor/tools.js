@@ -1977,15 +1977,17 @@ class AnnotationEditorUIManager {
         break;
     }
 
-    // 修改 激活的、已选中的 editor的批注参数属性
-    for (const editor of this.#selectedEditors) {
-      editor.updateParams(type, value);
-    }
     // 如果从全局面板来的，就执行
     if (fromGlobal) {
       // 修改 全局默认的批注属性 ，当准备新创建editor时进入
       for (const editorType of this.#editorTypes) {
         editorType.updateDefaultParams(type, value);
+      }
+    } else {
+      // 单个面板只能修改单个的选中
+      // 修改 激活的、已选中的 editor的批注参数属性
+      for (const editor of this.#selectedEditors) {
+        editor.updateParams(type, value);
       }
     }
   }
