@@ -18,12 +18,13 @@
     transform: none;
 
     &.moving {
-      z-index: 100000;
+      z-index: 400;
     }
 
     &.highlight,
     &.highlightOutline {
       &[data-main-rotation="90"] {
+
         mask,
         use:not(.clip, .mask) {
           transform: matrix(0, 1, -1, 0, 1, 0);
@@ -31,6 +32,7 @@
       }
 
       &[data-main-rotation="180"] {
+
         mask,
         use:not(.clip, .mask) {
           transform: matrix(-1, 0, 0, -1, 1, 1);
@@ -38,6 +40,7 @@
       }
 
       &[data-main-rotation="270"] {
+
         mask,
         use:not(.clip, .mask) {
           transform: matrix(0, -1, 1, 0, 0, 1);
@@ -103,6 +106,7 @@
       }
 
       &.free {
+
         /*
           When drawing the outline we use a mask in order to remove the parts
           that are inside the shape. Unfortunately, this removes the part of the
@@ -118,7 +122,7 @@
         &.selected {
           .mainOutline {
             stroke: var(--outline-around-color);
-            stroke-width:  var(--outline-width) 
+            stroke-width: var(--outline-width)
           }
 
           .secondaryOutline {
