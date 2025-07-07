@@ -25,7 +25,11 @@
 // eslint-disable-next-line max-len
 /** @typedef {import("../src/display/struct_tree_layer_builder.js").StructTreeLayerBuilder} StructTreeLayerBuilder */
 
-import { AnnotationEditorType, FeatureTest } from "../../shared/util.js";
+import {
+  AnnotationEditorParamsType,
+  AnnotationEditorType,
+  FeatureTest,
+} from "../../shared/util.js";
 import { AnnotationEditor } from "./editor.js";
 import { AreaHighlightEditor } from "./areaHighlight.js";
 import { FreeTextEditor } from "./freetext.js";
@@ -964,6 +968,18 @@ class AnnotationEditorLayer {
       },
       { signal }
     );
+    // 如果ink发生了切换颜色、或者切换粗细，也自动分割为一个组
+    this.#uiManager._eventBus.on("inkgroupchange", ({ type }) => {
+      switch (type) {
+        case AnnotationEditorParamsType.INK_COLOR:
+        case AnnotationEditorParamsType.INK_THICKNESS:
+        case AnnotationEditorParamsType.INK_OPACITY:
+          this.#focusedElement = null;
+          this.commitOrRemove();
+          break;
+      }
+    });
+
     this.#currentEditorType.startDrawing(this, this.#uiManager, false, event);
   }
 
