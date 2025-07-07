@@ -65,7 +65,7 @@ class FreeTextEditor extends AnnotationEditor {
 
   static _defaultColor = "#000000";
 
-  static _defaultFontSize = 10;
+  static _defaultFontSize = 14;
 
   static _defaultOpacity = 1;
 
