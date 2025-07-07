@@ -57,7 +57,8 @@ class AreaHighlightEditor extends AnnotationEditor {
 
   constructor(params) {
     super({ ...params, name: "areaHighlightEditor" });
-    this._isDraggable = true;
+    // 不允许拖拽
+    // this._isDraggable = true;
     this.#color =
       params.color ||
       AreaHighlightEditor._defaultColor ||
