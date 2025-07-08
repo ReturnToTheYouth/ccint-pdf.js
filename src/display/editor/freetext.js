@@ -1047,6 +1047,7 @@ class FreeTextEditor extends AnnotationEditor {
           rotation,
           id,
           popupRef,
+          opacity,
         },
         textContent,
         textPosition,
@@ -1063,6 +1064,7 @@ class FreeTextEditor extends AnnotationEditor {
       initialData = data = {
         annotationType: AnnotationEditorType.FREETEXT,
         color: Array.from(fontColor),
+        opacity,
         fontSize,
         value: textContent.join("\n"),
         position: textPosition,
@@ -1078,6 +1080,7 @@ class FreeTextEditor extends AnnotationEditor {
     editor.#fontSize = data.fontSize;
     editor.#color = Util.makeHexColor(...data.color);
     editor.#content = FreeTextEditor.#deserializeContent(data.value);
+    editor.opacity = data.opacity || FreeTextEditor._defaultOpacity;
     editor.annotationElementId = data.id || null;
     editor._initialData = initialData;
 

@@ -3906,6 +3906,7 @@ class FreeTextAnnotation extends MarkupAnnotation {
       }
       if (this._isOffscreenCanvasSupported) {
         const strokeAlpha = params.dict.get("CA");
+        this.data.opacity = strokeAlpha;
         const fakeUnicodeFont = new FakeUnicodeFont(xref, "sans-serif");
         this.appearance = fakeUnicodeFont.createAppearance(
           this._contents.str,
