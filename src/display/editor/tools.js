@@ -801,18 +801,18 @@ class AnnotationEditorUIManager {
               !self.isEnterHandled,
           },
         ],
-        [
-          [" ", "mac+ "],
-          proto.addNewEditorFromKeyboard,
-          {
-            // Those shortcuts can be used in the toolbar for some other actions
-            // like zooming, hence we need to check if the container has the
-            // focus.
-            checker: (self, { target: el }) =>
-              !(el instanceof HTMLButtonElement) &&
-              self.#container.contains(document.activeElement),
-          },
-        ],
+        // [
+        //   [" ", "mac+ "],
+        //   proto.addNewEditorFromKeyboard,
+        //   {
+        //     // Those shortcuts can be used in the toolbar for some other actions
+        //     // like zooming, hence we need to check if the container has the
+        //     // focus.
+        //     checker: (self, { target: el }) =>
+        //       !(el instanceof HTMLButtonElement) &&
+        //       self.#container.contains(document.activeElement),
+        //   },
+        // ],
         [["Escape", "mac+Escape"], proto.unselectAll],
         [
           ["ArrowLeft", "mac+ArrowLeft"],
