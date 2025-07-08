@@ -106,6 +106,7 @@ class UnderlineEditor extends AnnotationEditor {
       this.#focusOffset = params.focusOffset;
       this.#createOutlines();
       this.#addToDrawLayer();
+      this.rotate(this.rotation);
     }
   }
 
@@ -408,11 +409,28 @@ class UnderlineEditor extends AnnotationEditor {
       return;
     }
     // 第一个是画本体
+    // console.log("underline", this.#lineBoxes, this.rotation);
+    const rotateBoxes = this.#lineBoxes.map(box => {
+      const bbox = UnderlineEditor.#rotateBbox(
+        [box.x, box.y, box.width, box.height],
+        this.rotation
+      );
+      return {
+        x: bbox[0],
+        y: bbox[1],
+        width: bbox[2],
+        height: bbox[3],
+      };
+    });
+    // console.log("rotateBoxes", rotateBoxes);
+
     this.#ids = parent.drawLayer.drawLine(
-      this.#lineBoxes,
+      rotateBoxes,
       0.85,
-      addOpacityToColor(this.color, this.#opacity)
+      addOpacityToColor(this.color, this.#opacity),
+      this.rotation
     );
+
     this.#outlineId = parent.drawLayer.drawOutline(
       {
         rootClass: {
@@ -570,10 +588,40 @@ class UnderlineEditor extends AnnotationEditor {
     return 0;
   }
 
+  static #rotateBbox([x, y, width, height], angle) {
+    switch (angle) {
+      case 90:
+        return [1 - y - height, x, height, width];
+      case 180:
+        return [1 - x - width, 1 - y - height, width, height];
+      case 270:
+        return [y, 1 - x - width, height, width];
+    }
+    return [x, y, width, height];
+  }
+
+  /** @inheritdoc */
+  rotate(angle) {
+    // We need to rotate the svgs because of the coordinates system.
+    const { drawLayer } = this.parent;
+    // outline rotate
+    const rotateFocusOutlines = UnderlineEditor.#rotateBbox(
+      this.#focusOutlines.box,
+      angle
+    );
+    drawLayer.updateProperties(this.#outlineId, {
+      bbox: rotateFocusOutlines,
+      root: {
+        "data-main-rotation": angle,
+      },
+    });
+  }
+
   #serializeBoxes() {
     const [pageWidth, pageHeight] = this.pageDimensions;
     const [pageX, pageY] = this.pageTranslation;
     const boxes = this.#boxes;
+
     const quadPoints = new Float32Array(boxes.length * 8);
     let i = 0;
     for (const { x, y, width, height } of boxes) {
@@ -658,6 +706,9 @@ class UnderlineEditor extends AnnotationEditor {
       editor.#lineBoxes = AnnotationEditor.deduplicate(boxes);
       editor.#createOutlines();
       editor.#addToDrawLayer();
+      editor.rotate(editor.rotation);
+      // console.log("rotateBoxes", rotateBoxes, editor.#boxes);
+      // editor.#lineBoxes = [...rotateBoxes];
     }
 
     return editor;

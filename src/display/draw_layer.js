@@ -195,16 +195,57 @@ class DrawLayer {
     return id;
   }
 
-  static drawLine(line, y) {
+  static drawLine(line, y, rotation = 0) {
     const percent = y * 100 + "%";
-    line.setAttribute("x1", "0");
-    line.setAttribute("y1", percent);
-    line.setAttribute("x2", "100%");
-    line.setAttribute("y2", percent);
+    // line.setAttribute("x1", "0");
+    // line.setAttribute("y1", percent);
+    // line.setAttribute("x2", "100%");
+    // line.setAttribute("y2", percent);
+
+    // 根据旋转角度调整线的方向和位置
+    switch (rotation) {
+      case 90:
+        // 90度旋转：垂直线，从左边percent位置到右边
+        line.setAttribute("x1", percent);
+        line.setAttribute("y1", "0");
+        line.setAttribute("x2", percent);
+        line.setAttribute("y2", "100%");
+        break;
+      case 180:
+        // 180度旋转：水平线，但在顶部
+        line.setAttribute("x1", "0");
+        line.setAttribute("y1", 100 - y * 100 + "%");
+        line.setAttribute("x2", "100%");
+        line.setAttribute("y2", 100 - y * 100 + "%");
+        break;
+      case 270:
+        // 270度旋转：垂直线，从右边percent位置到左边
+        line.setAttribute("x1", 100 - y * 100 + "%");
+        line.setAttribute("y1", "0");
+        line.setAttribute("x2", 100 - y * 100 + "%");
+        line.setAttribute("y2", "100%");
+        break;
+      default:
+        // 0度：默认水平线
+        line.setAttribute("x1", "0");
+        line.setAttribute("y1", percent);
+        line.setAttribute("x2", "100%");
+        line.setAttribute("y2", percent);
+        break;
+    }
+
     line.setAttribute("stroke-width", "2px");
     // stroke属性用currentColor
     line.setAttribute("stroke", "currentColor");
     // line.setAttribute("style", "stroke: #000;stroke-width: 2px;");
+  }
+
+  updateBox(id, box) {
+    DrawLayer.#setBox(this.#mapping.get(id), box);
+  }
+
+  rotate(id, angle) {
+    this.#mapping.get(id).setAttribute("data-main-rotation", angle);
   }
 
   // 它的作用是在页面上为高亮（或自由高亮）批注绘制外部轮廓（outline），并且用 SVG 实现了不同的混合模式和遮罩效果。
@@ -328,7 +369,7 @@ class DrawLayer {
   }
 
   // percent表示位置
-  drawLine(boxes, percent, color = "#FF0000") {
+  drawLine(boxes, percent, color = "#FF0000", rotation = 0) {
     // box index
     const ids = [];
     for (const bdx in boxes) {
@@ -338,18 +379,19 @@ class DrawLayer {
       root.classList.add("highlight");
       // 去除掉不需要的box
       root.removeAttribute("viewBox");
-      const defs = DrawLayer._svgFactory.createElement("defs");
-      root.append(defs);
+
+      // const defs = DrawLayer._svgFactory.createElement("defs");
+      // root.append(defs);
       const line = DrawLayer._svgFactory.createElement("line");
-      defs.append(line);
+      root.append(line);
       const lineId = `line_p${this.pageIndex}_${id}`;
       line.setAttribute("id", lineId);
-      DrawLayer.drawLine(line, percent);
-      const use = DrawLayer._svgFactory.createElement("use");
-      root.append(use);
+      DrawLayer.drawLine(line, percent, rotation);
+      // const use = DrawLayer._svgFactory.createElement("use");
+      // root.append(use);
       // 默认为红色
-      use.setAttribute("style", `color: ${color}`);
-      use.setAttribute("href", `#${lineId}`);
+      line.setAttribute("style", `color: ${color}`);
+      // use.setAttribute("href", `#${lineId}`);
       ids.push(id);
       this.#mapping.set(id, root);
     }
