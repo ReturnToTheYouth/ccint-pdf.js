@@ -33,6 +33,8 @@ class AnnotationStorage {
 
   #storage = new Map();
 
+  pageAnnotationMap = new Map(); // 每一页对应哪些批注，key为每一页，value 为批注数组对象
+
   constructor() {
     // Callbacks to signal when the modification state is set or reset.
     // This is used by the viewer to only bind on `beforeunload` if forms
@@ -128,6 +130,10 @@ class AnnotationStorage {
     ) {
       this.onAnnotationEditor(value.constructor._type);
     }
+  }
+
+  addPageAnnotations(pageNum, annotationArray) {
+    this.pageAnnotationMap.set(pageNum, annotationArray);
   }
 
   /**

@@ -1736,6 +1736,7 @@ class PDFViewer {
     });
   }
 
+  // 切换到“可编辑批注模式”时，筛选出当前可见页面中含有可编辑批注的页面，并刷新这些页面。
   #switchToEditAnnotationMode() {
     const visible = this._getVisiblePages();
     const pagesToRefresh = [];

@@ -144,6 +144,13 @@ class AnnotationLayerBuilder {
       return;
     }
 
+    if (this.annotationStorage) {
+      this.annotationStorage.addPageAnnotations(
+        this.pdfPage.pageNumber - 1,
+        annotations
+      );
+    }
+
     // Create an annotation layer div and render the annotations
     // if there is at least one annotation.
     const div = (this.div = document.createElement("div"));

@@ -108,7 +108,6 @@ class AnnotationEditorLayerBuilder {
     div.hidden = true;
     div.dir = this.#uiManager.direction;
     this.#onAppend?.(div);
-
     this.annotationEditorLayer = new AnnotationEditorLayer({
       uiManager: this.#uiManager,
       div,
