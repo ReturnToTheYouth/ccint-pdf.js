@@ -438,7 +438,11 @@ class DrawLayer {
       this.#updateProperties(element, root);
     }
     if (bbox) {
-      DrawLayer.#setBox(element, bbox);
+      if (Array.isArray(bbox)) {
+        DrawLayer.#setBox(element, bbox);
+      } else {
+        DrawLayer.#setBoxCopy(element, bbox);
+      }
     }
     // 更新类名
     if (rootClass) {

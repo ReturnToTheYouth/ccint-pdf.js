@@ -98,6 +98,7 @@ class StrikethroughEditor extends AnnotationEditor {
       this.#focusOffset = params.focusOffset;
       this.#createOutlines();
       this.#addToDrawLayer();
+      this.rotate(this.rotation);
     }
   }
 
@@ -290,12 +291,12 @@ class StrikethroughEditor extends AnnotationEditor {
 
   /** @inheritdoc */
   fixAndSetPosition() {
-    return super.fixAndSetPosition(0);
+    return super.fixAndSetPosition(this.#getRotation());
   }
 
   /** @inheritdoc */
   getRect(tx, ty) {
-    return super.getRect(tx, ty, 0);
+    return super.getRect(tx, ty, this.#getRotation());
   }
 
   /** @inheritdoc */
@@ -370,11 +371,18 @@ class StrikethroughEditor extends AnnotationEditor {
     if (this.#ids !== null) {
       return;
     }
+
+    const rotateBoxes = this.#lineBoxes.map(box => {
+      const bbox = StrikethroughEditor.#rotateBbox(box, this.rotation);
+      return bbox;
+    });
+
     // 第一个是画本体
     this.#ids = parent.drawLayer.drawLine(
-      this.#lineBoxes,
+      rotateBoxes,
       0.55,
-      addOpacityToColor(this.color, this.#opacity)
+      addOpacityToColor(this.color, this.#opacity),
+      this.rotation
     );
 
     // 第二个是画轮廓 画轮廓的要留着，画本体的要改掉
@@ -399,51 +407,6 @@ class StrikethroughEditor extends AnnotationEditor {
     if (this.#strikethroughDiv) {
       this.#strikethroughDiv.style.clipPath = this.#clipPathId;
     }
-  }
-
-  static #rotateBbox({ x, y, width, height }, angle) {
-    switch (angle) {
-      case 90:
-        return {
-          x: 1 - y - height,
-          y: x,
-          width: height,
-          height: width,
-        };
-      case 180:
-        return {
-          x: 1 - x - width,
-          y: 1 - y - height,
-          width,
-          height,
-        };
-      case 270:
-        return {
-          x: y,
-          y: 1 - x - width,
-          width: height,
-          height: width,
-        };
-    }
-    return {
-      x,
-      y,
-      width,
-      height,
-    };
-  }
-
-  /** @inheritdoc */
-  rotate(angle) {
-    const { drawLayer } = this.parent;
-    // drawLayer.rotate(this.#id, angle);
-    drawLayer.rotate(this.#outlineId, angle);
-    // eslint-disable-next-line max-len
-    // drawLayer.updateBox(this.#id, StrikethroughEditor.#rotateBbox(this, angle));
-    drawLayer.updateBox(
-      this.#outlineId,
-      StrikethroughEditor.#rotateBbox(this.#focusOutlines.box, angle)
-    );
   }
 
   /** @inheritdoc */
@@ -585,6 +548,7 @@ class StrikethroughEditor extends AnnotationEditor {
       editor.#lineBoxes = AnnotationEditor.deduplicate(boxes);
       editor.#createOutlines();
       editor.#addToDrawLayer();
+      editor.rotate(editor.rotation);
     }
 
     return editor;
@@ -594,6 +558,76 @@ class StrikethroughEditor extends AnnotationEditor {
     // Highlight annotations are always drawn horizontally but if
     // a free highlight annotation can be rotated.
     return 0;
+  }
+
+  static #rotateBbox({ x, y, width, height }, angle) {
+    switch (angle) {
+      case 90:
+        return {
+          x: 1 - y - height,
+          y: x,
+          width: height,
+          height: width,
+        };
+      case 180:
+        return {
+          x: 1 - x - width,
+          y: 1 - y - height,
+          width,
+          height,
+        };
+      case 270:
+        return {
+          x: y,
+          y: 1 - x - width,
+          width: height,
+          height: width,
+        };
+    }
+    return {
+      x,
+      y,
+      width,
+      height,
+    };
+  }
+
+  // /** @inheritdoc */
+  // rotate(angle) {
+  //   const { drawLayer } = this.parent;
+  //   // drawLayer.rotate(this.#id, angle);
+  //   drawLayer.rotate(this.#outlineId, angle);
+  //   // eslint-disable-next-line max-len
+  //   // drawLayer.updateBox(this.#id, StrikethroughEditor.#rotateBbox(this, angle));
+  //   drawLayer.updateBox(
+  //     this.#outlineId,
+  //     StrikethroughEditor.#rotateBbox(this.#focusOutlines.box, angle)
+  //   );
+  // }
+
+  // static #rotateBbox([x, y, width, height], angle) {
+  //   switch (angle) {
+  //     case 90:
+  //       return [1 - y - height, x, height, width];
+  //     case 180:
+  //       return [1 - x - width, 1 - y - height, width, height];
+  //     case 270:
+  //       return [y, 1 - x - width, height, width];
+  //   }
+  //   return [x, y, width, height];
+  // }
+
+  /** @inheritdoc */
+  rotate(angle) {
+    // We need to rotate the svgs because of the coordinates system.
+    const { drawLayer } = this.parent;
+
+    drawLayer.updateProperties(this.#outlineId, {
+      bbox: StrikethroughEditor.#rotateBbox(this.#focusOutlines.box, angle),
+      root: {
+        "data-main-rotation": angle,
+      },
+    });
   }
 
   #hasElementChanged(serialized) {

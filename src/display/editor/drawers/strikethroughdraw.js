@@ -13,7 +13,6 @@
  * limitations under the License.
  */
 
-import { FreeDrawOutliner } from "./freedraw.js";
 import { Outline } from "./outline.js";
 // import { Util } from "../../../shared/util.js";
 // 用于处理高亮区域的轮廓
@@ -338,31 +337,4 @@ class StrikethroughOutline extends Outline {
   }
 }
 
-// 处理自由绘制高亮的轮廓生成
-class FreeStrikethroughOutliner extends FreeDrawOutliner {
-  newFreeDrawOutline(outline, points, box, scaleFactor, innerMargin, isLTR) {
-    return new FreeStrikethroughOutliner(
-      outline,
-      points,
-      box,
-      scaleFactor,
-      innerMargin,
-      isLTR
-    );
-  }
-}
-
-// class FreeStrikethroughOutline extends FreeDrawOutline {
-//   newOutliner(point, box, scaleFactor, thickness, isLTR, innerMargin = 0) {
-//     return new FreeStrikethroughOutline(
-//       point,
-//       box,
-//       scaleFactor,
-//       thickness,
-//       isLTR,
-//       innerMargin
-//     );
-//   }
-// }
-
-export { FreeStrikethroughOutliner, StrikethroughOutliner };
+export { StrikethroughOutliner };
