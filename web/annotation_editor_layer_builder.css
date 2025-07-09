@@ -102,15 +102,15 @@
   }
 }
 
-[data-editor-rotation="90"] {
+[data-editor-rotation="90"]:not(.areaHighlightEditor) {
   transform: rotate(90deg);
 }
 
-[data-editor-rotation="180"] {
+[data-editor-rotation="180"]:not(.areaHighlightEditor) {
   transform: rotate(180deg);
 }
 
-[data-editor-rotation="270"] {
+[data-editor-rotation="270"]:not(.areaHighlightEditor) {
   transform: rotate(270deg);
 }
 
