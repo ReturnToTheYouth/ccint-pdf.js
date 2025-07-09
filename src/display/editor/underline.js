@@ -427,8 +427,7 @@ class UnderlineEditor extends AnnotationEditor {
     this.#ids = parent.drawLayer.drawLine(
       rotateBoxes,
       0.85,
-      addOpacityToColor(this.color, this.#opacity),
-      this.rotation
+      addOpacityToColor(this.color, this.#opacity)
     );
 
     this.#outlineId = parent.drawLayer.drawOutline(
@@ -615,6 +614,21 @@ class UnderlineEditor extends AnnotationEditor {
         "data-main-rotation": angle,
       },
     });
+
+    // 更新line box的properties
+    for (const id of this.#ids) {
+      // 获取box的rotate的包围盒属性
+      const box = this.#lineBoxes[id];
+      const rotateBbox = UnderlineEditor.#rotateBbox(
+        [box.x, box.y, box.width, box.height],
+        angle
+      );
+
+      drawLayer.updateProperties(id, {
+        bbox: rotateBbox,
+        lines: drawLayer.rotateDrawLine(0.85, angle),
+      });
+    }
   }
 
   #serializeBoxes() {

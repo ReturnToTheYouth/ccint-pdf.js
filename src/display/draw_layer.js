@@ -197,47 +197,53 @@ class DrawLayer {
 
   static drawLine(line, y, rotation = 0) {
     const percent = y * 100 + "%";
-    // line.setAttribute("x1", "0");
-    // line.setAttribute("y1", percent);
-    // line.setAttribute("x2", "100%");
-    // line.setAttribute("y2", percent);
-
-    // 根据旋转角度调整线的方向和位置
-    switch (rotation) {
-      case 90:
-        // 90度旋转：垂直线，从左边percent位置到右边
-        line.setAttribute("x1", percent);
-        line.setAttribute("y1", "0");
-        line.setAttribute("x2", percent);
-        line.setAttribute("y2", "100%");
-        break;
-      case 180:
-        // 180度旋转：水平线，但在顶部
-        line.setAttribute("x1", "0");
-        line.setAttribute("y1", 100 - y * 100 + "%");
-        line.setAttribute("x2", "100%");
-        line.setAttribute("y2", 100 - y * 100 + "%");
-        break;
-      case 270:
-        // 270度旋转：垂直线，从右边percent位置到左边
-        line.setAttribute("x1", 100 - y * 100 + "%");
-        line.setAttribute("y1", "0");
-        line.setAttribute("x2", 100 - y * 100 + "%");
-        line.setAttribute("y2", "100%");
-        break;
-      default:
-        // 0度：默认水平线
-        line.setAttribute("x1", "0");
-        line.setAttribute("y1", percent);
-        line.setAttribute("x2", "100%");
-        line.setAttribute("y2", percent);
-        break;
-    }
+    line.setAttribute("x1", "0");
+    line.setAttribute("y1", percent);
+    line.setAttribute("x2", "100%");
+    line.setAttribute("y2", percent);
 
     line.setAttribute("stroke-width", "2px");
     // stroke属性用currentColor
     line.setAttribute("stroke", "currentColor");
     // line.setAttribute("style", "stroke: #000;stroke-width: 2px;");
+  }
+
+  rotateDrawLine(y, rotation = 0) {
+    const percent = y * 100 + "%";
+    // 根据旋转角度调整线的方向和位置
+    switch (rotation) {
+      case 90:
+        // 90度旋转：垂直线，从左边percent位置到右边
+        return {
+          x1: percent,
+          y1: "0",
+          x2: percent,
+          y2: "100%",
+        };
+      case 180:
+        // 180度旋转：水平线，但在顶部
+        return {
+          x1: "0",
+          y1: 100 - y * 100 + "%",
+          x2: "100%",
+          y2: 100 - y * 100 + "%",
+        };
+      case 270:
+        return {
+          x1: 100 - y * 100 + "%",
+          y1: "0",
+          x2: 100 - y * 100 + "%",
+          y2: "100%",
+        };
+      default:
+        // 0度：默认水平线
+        return {
+          x1: "0",
+          y1: percent,
+          x2: "100%",
+          y2: percent,
+        };
+    }
   }
 
   updateBox(id, box) {
@@ -369,7 +375,7 @@ class DrawLayer {
   }
 
   // percent表示位置
-  drawLine(boxes, percent, color = "#FF0000", rotation = 0) {
+  drawLine(boxes, percent, color = "#FF0000") {
     // box index
     const ids = [];
     for (const bdx in boxes) {
@@ -386,7 +392,7 @@ class DrawLayer {
       root.append(line);
       const lineId = `line_p${this.pageIndex}_${id}`;
       line.setAttribute("id", lineId);
-      DrawLayer.drawLine(line, percent, rotation);
+      DrawLayer.drawLine(line, percent);
       // const use = DrawLayer._svgFactory.createElement("use");
       // root.append(use);
       // 默认为红色
@@ -426,7 +432,7 @@ class DrawLayer {
     // bbox: 边界框属性
     // rootClass: 类名属性
     // path: 路径属性
-    const { root, bbox, rootClass, path } = properties;
+    const { root, bbox, rootClass, path, lines } = properties;
     const element =
       typeof elementOrId === "number"
         ? this.#mapping.get(elementOrId)
@@ -434,6 +440,7 @@ class DrawLayer {
     if (!element) {
       return;
     }
+
     if (root) {
       this.#updateProperties(element, root);
     }
@@ -457,6 +464,12 @@ class DrawLayer {
       const defs = element.firstChild;
       const pathElement = defs.firstChild;
       this.#updateProperties(pathElement, path);
+    }
+
+    // 更新线条位置
+    if (lines) {
+      const lineElement = element.firstChild;
+      this.#updateProperties(lineElement, lines);
     }
   }
 
