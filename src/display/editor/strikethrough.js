@@ -372,17 +372,11 @@ class StrikethroughEditor extends AnnotationEditor {
       return;
     }
 
-    const rotateBoxes = this.#lineBoxes.map(box => {
-      const bbox = StrikethroughEditor.#rotateBbox(box, this.rotation);
-      return bbox;
-    });
-
     // 第一个是画本体
     this.#ids = parent.drawLayer.drawLine(
-      rotateBoxes,
+      this.#lineBoxes,
       0.55,
-      addOpacityToColor(this.color, this.#opacity),
-      this.rotation
+      addOpacityToColor(this.color, this.#opacity)
     );
 
     // 第二个是画轮廓 画轮廓的要留着，画本体的要改掉
@@ -622,12 +616,26 @@ class StrikethroughEditor extends AnnotationEditor {
     // We need to rotate the svgs because of the coordinates system.
     const { drawLayer } = this.parent;
 
+    // 更新聚焦框的位置
     drawLayer.updateProperties(this.#outlineId, {
       bbox: StrikethroughEditor.#rotateBbox(this.#focusOutlines.box, angle),
       root: {
         "data-main-rotation": angle,
       },
     });
+
+    // 更新线条位置
+    for (const index in this.#ids) {
+      // 获取box的rotate的包围盒属性
+      const id = this.#ids[index];
+      const box = this.#lineBoxes[index];
+      const rotateBbox = StrikethroughEditor.#rotateBbox(box, angle);
+
+      drawLayer.updateProperties(id, {
+        bbox: rotateBbox,
+        lines: drawLayer.rotateDrawLine(0.55, angle),
+      });
+    }
   }
 
   #hasElementChanged(serialized) {

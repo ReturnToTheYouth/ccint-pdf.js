@@ -246,14 +246,6 @@ class DrawLayer {
     }
   }
 
-  updateBox(id, box) {
-    DrawLayer.#setBox(this.#mapping.get(id), box);
-  }
-
-  rotate(id, angle) {
-    this.#mapping.get(id).setAttribute("data-main-rotation", angle);
-  }
-
   // 它的作用是在页面上为高亮（或自由高亮）批注绘制外部轮廓（outline），并且用 SVG 实现了不同的混合模式和遮罩效果。
   highlightOutline(outlines) {
     // We cannot draw the outline directly in the SVG for highlights because
@@ -440,7 +432,6 @@ class DrawLayer {
     if (!element) {
       return;
     }
-
     if (root) {
       this.#updateProperties(element, root);
     }

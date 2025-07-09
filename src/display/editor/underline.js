@@ -616,17 +616,19 @@ class UnderlineEditor extends AnnotationEditor {
     });
 
     // 更新line box的properties
-    for (const id of this.#ids) {
+    for (const index in this.#ids) {
       // 获取box的rotate的包围盒属性
-      const box = this.#lineBoxes[id];
+      const id = this.#ids[index];
+      const box = this.#lineBoxes[index];
       const rotateBbox = UnderlineEditor.#rotateBbox(
         [box.x, box.y, box.width, box.height],
         angle
       );
 
+      const isOdd = angle % 180 !== 0;
       drawLayer.updateProperties(id, {
         bbox: rotateBbox,
-        lines: drawLayer.rotateDrawLine(0.85, angle),
+        lines: drawLayer.rotateDrawLine(isOdd ? 0.15 : 0.85, angle),
       });
     }
   }
