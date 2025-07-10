@@ -1091,10 +1091,6 @@ class AnnotationEditorLayer {
     // We're maybe rendering a layer which was invisible when we started to edit
     // so we must set the different callbacks for it.
     this.updateMode();
-    this.#uiManager._eventBus.dispatch("switchactiveeditor", {
-      source: this,
-      mode: AnnotationEditorType.NONE,
-    });
   }
 
   /**
