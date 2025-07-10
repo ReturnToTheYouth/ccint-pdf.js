@@ -72,9 +72,13 @@ class AreaHighlightEditor extends AnnotationEditor {
       this.width = params.width;
       this.height = params.height;
     } else {
+      // 落笔的位置
       this.sourceX = params.x;
       this.sourceY = params.y;
     }
+    // 记录真实坐上角点位的相对方向
+    this.relativeX = 0;
+    this.relativeY = 0;
   }
 
   /** @inheritdoc */
@@ -258,6 +262,10 @@ class AreaHighlightEditor extends AnnotationEditor {
 
     let width = offsetX - sourceX - this.sourceX;
     let height = offsetY - sourceY - this.sourceY;
+
+    // 记录真正左上角点位的相对方向
+    this.relativeX = width / this.parentDimensions[0];
+    this.relativeY = height / this.parentDimensions[1];
 
     let left = this.sourceX;
     let top = this.sourceY;

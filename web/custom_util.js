@@ -365,7 +365,10 @@ class ParameterConverter {
   }
 
   fromAreaHighlight(editor) {
-    return this.fromCommon(editor);
+    const params = this.fromCommon(editor);
+    params.relativeX = editor.relativeX;
+    params.relativeY = editor.relativeY;
+    return params;
   }
 
   fromArrow(editor) {
