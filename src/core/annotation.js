@@ -3930,8 +3930,16 @@ class FreeTextAnnotation extends MarkupAnnotation {
   }
 
   static createNewDict(annotation, xref, { apRef, ap }) {
-    const { color, fontSize, oldAnnotation, rect, rotation, user, value } =
-      annotation;
+    const {
+      color,
+      fontSize,
+      oldAnnotation,
+      rect,
+      rotation,
+      user,
+      value,
+      opacity,
+    } = annotation;
     const freetext = oldAnnotation || new Dict(xref);
     freetext.set("Type", Name.get("Annot"));
     freetext.set("Subtype", Name.get("FreeText"));
@@ -3950,6 +3958,9 @@ class FreeTextAnnotation extends MarkupAnnotation {
     freetext.set("F", 4);
     freetext.set("Border", [0, 0, 0]);
     freetext.set("Rotate", rotation);
+
+    // 设置透明度
+    freetext.set("CA", opacity);
 
     if (user) {
       freetext.set("T", stringToAsciiOrUTF16BE(user));
