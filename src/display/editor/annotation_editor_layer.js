@@ -288,7 +288,6 @@ class AnnotationEditorLayer {
       this.#isEnabling = false;
       return;
     }
-
     const editables = this.#annotationLayer.getEditableAnnotations();
     for (const editable of editables) {
       // The element must be hidden whatever its state is.
@@ -333,7 +332,6 @@ class AnnotationEditorLayer {
       this.getEditableAnnotation(editor.annotationElementId)?.show();
       editor.remove();
     }
-
     if (this.#annotationLayer) {
       // Show the annotations that were hidden in enable().
       const editables = this.#annotationLayer.getEditableAnnotations();
@@ -370,8 +368,8 @@ class AnnotationEditorLayer {
     for (const editorType of AnnotationEditorLayer.#editorTypes.values()) {
       classList.remove(`${editorType._type}Editing`);
     }
-    this.disableTextSelection();
-    this.toggleAnnotationLayerPointerEvents(true);
+    this.disableTextSelection(); // 禁用文本选择
+    this.toggleAnnotationLayerPointerEvents(true); // 恢复批注层的鼠标事件
 
     this.#isDisabling = false;
   }
@@ -1093,6 +1091,10 @@ class AnnotationEditorLayer {
     // We're maybe rendering a layer which was invisible when we started to edit
     // so we must set the different callbacks for it.
     this.updateMode();
+    this.#uiManager._eventBus.dispatch("switchactiveeditor", {
+      source: this,
+      mode: AnnotationEditorType.NONE,
+    });
   }
 
   /**
