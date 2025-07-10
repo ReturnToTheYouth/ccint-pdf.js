@@ -75,7 +75,6 @@ class DrawLayer {
     const svg = DrawLayer._svgFactory.create(1, 1, /* skipDimensions = */ true);
     this.#parent.append(svg);
     svg.setAttribute("aria-hidden", true);
-
     return svg;
   }
 
@@ -84,7 +83,6 @@ class DrawLayer {
     this.#parent.append(svg);
     svg.setAttribute("aria-hidden", true);
     DrawLayer.#setBoxCopy(svg, box);
-
     return svg;
   }
 
@@ -436,10 +434,10 @@ class DrawLayer {
       this.#updateProperties(element, root);
     }
     if (bbox) {
-      if (Array.isArray(bbox)) {
-        DrawLayer.#setBox(element, bbox);
-      } else {
+      if (Object.prototype.toString.call(bbox) === "[object Object]") {
         DrawLayer.#setBoxCopy(element, bbox);
+      } else {
+        DrawLayer.#setBox(element, bbox);
       }
     }
     // 更新类名
