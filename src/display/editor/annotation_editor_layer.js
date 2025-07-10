@@ -374,6 +374,13 @@ class AnnotationEditorLayer {
     this.#isDisabling = false;
   }
 
+  removeCurrentModeTypeClass() {
+    const { classList } = this.div;
+    for (const editorType of AnnotationEditorLayer.#editorTypes.values()) {
+      classList.remove(`${editorType._type}Editing`);
+    }
+  }
+
   getEditableAnnotation(id) {
     return this.#annotationLayer?.getEditableAnnotation(id) || null;
   }
@@ -1091,6 +1098,10 @@ class AnnotationEditorLayer {
     // We're maybe rendering a layer which was invisible when we started to edit
     // so we must set the different callbacks for it.
     this.updateMode();
+    this.#uiManager._eventBus.dispatch("switchactiveeditor", {
+      source: this,
+      mode: AnnotationEditorType.NONE,
+    });
   }
 
   /**

@@ -1883,13 +1883,17 @@ class AnnotationEditorUIManager {
 
     this.#mode = mode;
     if (mode === AnnotationEditorType.NONE) {
-      this.setEditingState(false);
-      this.#disableAll();
+      // this.setEditingState(false);
+      // this.#disableAll();
 
-      this._editorUndoBar?.hide();
+      // this._editorUndoBar?.hide();
 
-      this.#updateModeCapability.resolve();
-      return;
+      // this.#updateModeCapability.resolve();
+      // return;
+      for (const layer of this.#allLayers.values()) {
+        layer.enableBlankUnselect();
+        layer.removeCurrentModeTypeClass(); // 用于取消当前模式的class
+      }
     }
     if (mode === AnnotationEditorType.SIGNATURE) {
       await this.#signatureManager?.loadSignatures();

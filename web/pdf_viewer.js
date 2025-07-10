@@ -2444,7 +2444,7 @@ class PDFViewer {
       mode === AnnotationEditorType.NONE ||
       this.#annotationEditorMode === AnnotationEditorType.NONE
     ) {
-      const isEditing = mode !== AnnotationEditorType.NONE;
+      const isEditing = true;
       if (!isEditing) {
         this.pdfDocument.annotationStorage.resetModifiedIds();
       }
