@@ -1042,12 +1042,11 @@ class FreeTextEditor extends AnnotationEditor {
     if (data instanceof FreeTextAnnotationElement) {
       const {
         data: {
-          defaultAppearanceData: { fontSize, fontColor },
+          defaultAppearanceData: { fontSize, fontColor, opacity },
           rect,
           rotation,
           id,
           popupRef,
-          opacity,
         },
         textContent,
         textPosition,

@@ -3890,6 +3890,8 @@ class FreeTextAnnotation extends MarkupAnnotation {
       );
       this.data.defaultAppearanceData.fontColor = fontColor;
       this.data.defaultAppearanceData.fontSize = fontSize || 10;
+      const strokeAlpha = params.dict.get("CA");
+      this.data.defaultAppearanceData.opacity = strokeAlpha;
     } else {
       this.data.defaultAppearanceData.fontSize ||= 10;
       const { fontColor, fontSize } = this.data.defaultAppearanceData;
@@ -3906,7 +3908,7 @@ class FreeTextAnnotation extends MarkupAnnotation {
       }
       if (this._isOffscreenCanvasSupported) {
         const strokeAlpha = params.dict.get("CA");
-        this.data.opacity = strokeAlpha;
+        this.data.defaultAppearanceData.opacity = strokeAlpha;
         const fakeUnicodeFont = new FakeUnicodeFont(xref, "sans-serif");
         this.appearance = fakeUnicodeFont.createAppearance(
           this._contents.str,
