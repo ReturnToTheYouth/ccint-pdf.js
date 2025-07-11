@@ -2403,11 +2403,16 @@ class PDFViewer {
   /**
    * @param {AnnotationEditorModeOptions} options
    */
-  set annotationEditorMode({ mode, editId = null, isFromKeyboard = false }) {
+  set annotationEditorMode({
+    mode,
+    editId = null,
+    isFromKeyboard = false,
+    action = null,
+  }) {
     if (!this.#annotationEditorUIManager) {
       throw new Error(`The AnnotationEditor is not enabled.`);
     }
-    if (this.#annotationEditorMode === mode) {
+    if (this.#annotationEditorMode === mode && action === null) {
       return; // The AnnotationEditor mode didn't change.
     }
     if (!isValidAnnotationEditorMode(mode)) {
@@ -2437,6 +2442,7 @@ class PDFViewer {
       eventBus.dispatch("annotationeditormodechanged", {
         source: this,
         mode,
+        action,
       });
     };
 
