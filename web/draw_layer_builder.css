@@ -88,8 +88,8 @@
 
       &:not(.free) {
         &.hovered:not(.selected) {
-          stroke: var(--hover-outline-color);
-          stroke-width: var(--outline-width);
+          stroke: none;
+          stroke-width: 0;
         }
 
         &.selected {
@@ -115,8 +115,8 @@
           This is not a perfect solution, but it works well enough.
         */
         &.hovered:not(.selected) {
-          stroke: var(--hover-outline-color);
-          stroke-width: calc(2 * var(--outline-width));
+          stroke: none;
+          stroke-width: 0;
         }
 
         &.selected {
