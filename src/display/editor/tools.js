@@ -788,19 +788,19 @@ class AnnotationEditorUIManager {
           proto.delete,
           { checker: textInputChecker },
         ],
-        [
-          ["Enter", "mac+Enter"],
-          proto.addNewEditorFromKeyboard,
-          {
-            // Those shortcuts can be used in the toolbar for some other actions
-            // like zooming, hence we need to check if the container has the
-            // focus.
-            checker: (self, { target: el }) =>
-              !(el instanceof HTMLButtonElement) &&
-              self.#container.contains(el) &&
-              !self.isEnterHandled,
-          },
-        ],
+        // [
+        //   ["Enter", "mac+Enter"],
+        //   proto.addNewEditorFromKeyboard,
+        //   {
+        //     // Those shortcuts can be used in the toolbar for some other actions
+        //     // like zooming, hence we need to check if the container has the
+        //     // focus.
+        //     checker: (self, { target: el }) =>
+        //       !(el instanceof HTMLButtonElement) &&
+        //       self.#container.contains(el) &&
+        //       !self.isEnterHandled,
+        //   },
+        // ],
         // [
         //   [" ", "mac+ "],
         //   proto.addNewEditorFromKeyboard,
@@ -814,41 +814,41 @@ class AnnotationEditorUIManager {
         //   },
         // ],
         [["Escape", "mac+Escape"], proto.unselectAll],
-        [
-          ["ArrowLeft", "mac+ArrowLeft"],
-          proto.translateSelectedEditors,
-          { args: [-small, 0], checker: arrowChecker },
-        ],
+        // [
+        //   ["ArrowLeft", "mac+ArrowLeft"],
+        //   proto.translateSelectedEditors,
+        //   { args: [-small, 0], checker: arrowChecker },
+        // ],
         [
           ["ctrl+ArrowLeft", "mac+shift+ArrowLeft"],
           proto.translateSelectedEditors,
           { args: [-big, 0], checker: arrowChecker },
         ],
-        [
-          ["ArrowRight", "mac+ArrowRight"],
-          proto.translateSelectedEditors,
-          { args: [small, 0], checker: arrowChecker },
-        ],
+        // [
+        //   ["ArrowRight", "mac+ArrowRight"],
+        //   proto.translateSelectedEditors,
+        //   { args: [small, 0], checker: arrowChecker },
+        // ],
         [
           ["ctrl+ArrowRight", "mac+shift+ArrowRight"],
           proto.translateSelectedEditors,
           { args: [big, 0], checker: arrowChecker },
         ],
-        [
-          ["ArrowUp", "mac+ArrowUp"],
-          proto.translateSelectedEditors,
-          { args: [0, -small], checker: arrowChecker },
-        ],
+        // [
+        //   ["ArrowUp", "mac+ArrowUp"],
+        //   proto.translateSelectedEditors,
+        //   { args: [0, -small], checker: arrowChecker },
+        // ],
         [
           ["ctrl+ArrowUp", "mac+shift+ArrowUp"],
           proto.translateSelectedEditors,
           { args: [0, -big], checker: arrowChecker },
         ],
-        [
-          ["ArrowDown", "mac+ArrowDown"],
-          proto.translateSelectedEditors,
-          { args: [0, small], checker: arrowChecker },
-        ],
+        // [
+        //   ["ArrowDown", "mac+ArrowDown"],
+        //   proto.translateSelectedEditors,
+        //   { args: [0, small], checker: arrowChecker },
+        // ],
         [
           ["ctrl+ArrowDown", "mac+shift+ArrowDown"],
           proto.translateSelectedEditors,

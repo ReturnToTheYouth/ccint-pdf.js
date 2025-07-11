@@ -101,41 +101,41 @@ class FreeTextEditor extends AnnotationEditor {
           ["ctrl+Enter", "mac+meta+Enter", "Escape", "mac+Escape"],
           proto.commitOrRemove,
         ],
-        [
-          ["ArrowLeft", "mac+ArrowLeft"],
-          proto._translateEmpty,
-          { args: [-small, 0], checker: arrowChecker },
-        ],
+        // [
+        //   ["ArrowLeft", "mac+ArrowLeft"],
+        //   proto._translateEmpty,
+        //   { args: [-small, 0], checker: arrowChecker },
+        // ],
         [
           ["ctrl+ArrowLeft", "mac+shift+ArrowLeft"],
           proto._translateEmpty,
           { args: [-big, 0], checker: arrowChecker },
         ],
-        [
-          ["ArrowRight", "mac+ArrowRight"],
-          proto._translateEmpty,
-          { args: [small, 0], checker: arrowChecker },
-        ],
+        // [
+        //   ["ArrowRight", "mac+ArrowRight"],
+        //   proto._translateEmpty,
+        //   { args: [small, 0], checker: arrowChecker },
+        // ],
         [
           ["ctrl+ArrowRight", "mac+shift+ArrowRight"],
           proto._translateEmpty,
           { args: [big, 0], checker: arrowChecker },
         ],
-        [
-          ["ArrowUp", "mac+ArrowUp"],
-          proto._translateEmpty,
-          { args: [0, -small], checker: arrowChecker },
-        ],
+        // [
+        //   ["ArrowUp", "mac+ArrowUp"],
+        //   proto._translateEmpty,
+        //   { args: [0, -small], checker: arrowChecker },
+        // ],
         [
           ["ctrl+ArrowUp", "mac+shift+ArrowUp"],
           proto._translateEmpty,
           { args: [0, -big], checker: arrowChecker },
         ],
-        [
-          ["ArrowDown", "mac+ArrowDown"],
-          proto._translateEmpty,
-          { args: [0, small], checker: arrowChecker },
-        ],
+        // [
+        //   ["ArrowDown", "mac+ArrowDown"],
+        //   proto._translateEmpty,
+        //   { args: [0, small], checker: arrowChecker },
+        // ],
         [
           ["ctrl+ArrowDown", "mac+shift+ArrowDown"],
           proto._translateEmpty,
