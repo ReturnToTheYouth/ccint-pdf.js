@@ -183,6 +183,13 @@ class AnnotationEditorLayer {
         this.togglePointerEvents(false);
         this.toggleAnnotationLayerPointerEvents(true);
         this.disableClick();
+        const { classList } = this.div;
+        // 获取所有类名并找出包含 Editing 的类
+        const editingClasses = Array.from(classList).filter(className =>
+          className.endsWith("Editing")
+        );
+        // 移除找到的类
+        classList.remove(...editingClasses);
         return;
       case AnnotationEditorType.INK:
       case AnnotationEditorType.ERASER:
@@ -216,7 +223,7 @@ class AnnotationEditorLayer {
 
     const { classList } = this.div;
     // 橡皮擦模式下，隐藏编辑器
-
+    debugger
     for (const editorType of AnnotationEditorLayer.#editorTypes.values()) {
       classList.toggle(
         `${editorType._type}Editing`,
