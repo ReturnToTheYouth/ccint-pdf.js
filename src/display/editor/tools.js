@@ -1338,7 +1338,7 @@ class AnnotationEditorUIManager {
     if (!boxes) {
       return;
     }
-    
+
     this.#highlightToolbar ||= new HighlightToolbar(this);
     this.#highlightToolbar.show(textLayer, boxes, this.direction === "ltr");
   }
@@ -1353,7 +1353,6 @@ class AnnotationEditorUIManager {
       this.#annotationStorage &&
       !this.#annotationStorage.has(editor.id)
     ) {
-      console.log("addToAnnotationStorage", editor);
       this.#annotationStorage.setValue(editor.id, editor);
     }
   }
