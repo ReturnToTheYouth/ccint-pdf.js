@@ -2493,18 +2493,12 @@ class PDFViewer {
     return this.#switchActiveEditor;
   }
 
-  set switchActiveEditor({
-    mode,
-    editId = null,
-    isFromKeyboard = false,
-    initRender = false,
-  }) {
+  set switchActiveEditor({ mode, editId = null, initRender = false }) {
     const update = async () => {
       this.#cleanupSwitchAnnotationEditorMode();
       await this.#annotationEditorUIManager.switchEditor(
         mode,
         editId,
-        isFromKeyboard,
         initRender
       );
     };

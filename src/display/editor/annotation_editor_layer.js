@@ -223,7 +223,6 @@ class AnnotationEditorLayer {
 
     const { classList } = this.div;
     // 橡皮擦模式下，隐藏编辑器
-    debugger
     for (const editorType of AnnotationEditorLayer.#editorTypes.values()) {
       classList.toggle(
         `${editorType._type}Editing`,
