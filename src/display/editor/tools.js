@@ -1162,14 +1162,21 @@ class AnnotationEditorUIManager {
   }
 
   // 单次批注，使得editor处于编辑状态、可以正确添加editor
-  async addToEditLayerOnce(mode = AnnotationEditorType.NONE) {
+  async addToEditLayerOnce(
+    mode = AnnotationEditorType.NONE,
+    initRender = false
+  ) {
     this.setEditingState(true);
     await this.#enableAll();
     this.unselectAll();
     for (const layer of this.#allLayers.values()) {
       // 自定义的点击事件取消
       layer.enableBlankUnselect();
-      layer.updateMode(mode);
+      if (initRender) {
+        layer.updateMode();
+      } else {
+        layer.updateMode(mode);
+      }
     }
   }
 
@@ -1927,9 +1934,9 @@ class AnnotationEditorUIManager {
     this.#updateModeCapability.resolve();
   }
 
-  async switchEditor(mode, editId = null) {
+  async switchEditor(mode, editId = null, initRender = false) {
     // 关闭模式，但是保证编辑器可激活
-    await this.addToEditLayerOnce(AnnotationEditorType.NONE);
+    await this.addToEditLayerOnce(AnnotationEditorType.NONE, initRender);
     for (const editor of this.#allEditors.values()) {
       if (editor.annotationElementId === editId) {
         this.setSelected(editor);

@@ -1107,7 +1107,7 @@ class AnnotationEditorLayer {
     this.updateMode();
     this.#uiManager._eventBus.dispatch("switchactiveeditor", {
       source: this,
-      mode: AnnotationEditorType.NONE,
+      initRender: true,
     });
   }
 
