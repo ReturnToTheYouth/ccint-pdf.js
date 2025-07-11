@@ -317,7 +317,7 @@ class StampEditor extends AnnotationEditor {
 
   /** @inheritdoc */
   onceAdded(focus) {
-    this._isDraggable = true;
+    this._isDraggable = false;
     if (focus) {
       this.div.focus();
     }
