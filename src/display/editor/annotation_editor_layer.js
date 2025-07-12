@@ -859,12 +859,14 @@ class AnnotationEditorLayer {
       return;
     }
 
-    if (!this.#allowClick) {
+    const currentMode = this.#uiManager.getMode();
+
+    // 如果不允许点击，并且模式不是freetext（它需要丝滑创建），则直接return
+    if (!this.#allowClick && currentMode !== AnnotationEditorType.FREETEXT) {
       this.#allowClick = true;
       return;
     }
 
-    const currentMode = this.#uiManager.getMode();
     if (
       currentMode === AnnotationEditorType.STAMP ||
       currentMode === AnnotationEditorType.SIGNATURE
@@ -933,6 +935,7 @@ class AnnotationEditorLayer {
 
     // 如果是区域高亮、获取editor的位置并创建
     if (this.#uiManager.getMode() === AnnotationEditorType.AREAHIGHLIGHT) {
+      this.#uiManager.unselectAll();
       this.#pointerDownEditor = this.createAndAddNewEditor(event);
       this.#pointerDownEditor.parentOffset = getLeftTopCoord(this.div);
     }

@@ -23,6 +23,7 @@ import {
   KeyboardManager,
 } from "./tools.js";
 import {
+  AnnotationEditorType,
   FeatureTest,
   MathClamp,
   shadow,
@@ -881,7 +882,10 @@ class AnnotationEditor {
 
     const pointerUpCallback = () => {
       ac.abort();
-      this.parent.togglePointerEvents(true);
+      // 如果是在非编辑模式下，选中单个editor，不需要修改层状态
+      if (this._uiManager.getMode() !== AnnotationEditorType.NONE) {
+        this.parent.togglePointerEvents(true);
+      }
       this.#altText?.toggle(true);
       this._isDraggable = savedDraggable;
       this.parent.div.style.cursor = savedParentCursor;
