@@ -1421,6 +1421,9 @@ class AnnotationEditorUIManager {
 
     this.#highlightWhenShiftUp = this.isShiftKeyDown;
     if (!this.isShiftKeyDown) {
+      // 禁用所有editor的pointer-events
+      this.#togglePointerEventsNone(true);
+
       const activeLayer =
         this.#mode === AnnotationEditorType.HIGHLIGHT ||
         this.#mode === AnnotationEditorType.STRIKETHROUGH ||
@@ -1433,6 +1436,7 @@ class AnnotationEditorUIManager {
       const signal = this.combinedSignal(ac);
 
       const pointerup = e => {
+        this.#togglePointerEventsNone(false);
         if (e.type === "pointerup" && e.button !== 0) {
           // Do nothing on right click.
           return;
@@ -1466,6 +1470,17 @@ class AnnotationEditorUIManager {
       this.#selectionChange.bind(this),
       { signal: this._signal }
     );
+  }
+
+  // 所有editor加上pointer-events: none;
+  #togglePointerEventsNone(isSelecting = false) {
+    for (const editor of this.#allEditors.values()) {
+      editor.div.style.pointerEvents = isSelecting ? "none" : "";
+      const internal = editor.div.querySelector(".internal");
+      if (internal) {
+        internal.style.pointerEvents = isSelecting ? "none" : "";
+      }
+    }
   }
 
   #addFocusManager() {
