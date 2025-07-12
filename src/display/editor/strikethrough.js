@@ -542,7 +542,7 @@ class StrikethroughEditor extends AnnotationEditor {
       editor.#lineBoxes = AnnotationEditor.deduplicate(boxes);
       editor.#createOutlines();
       editor.#addToDrawLayer();
-      editor.rotate(editor.rotation);
+      editor.rotate(editor.pageRotation);
     }
 
     return editor;

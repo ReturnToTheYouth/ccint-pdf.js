@@ -722,7 +722,7 @@ class UnderlineEditor extends AnnotationEditor {
       editor.#lineBoxes = AnnotationEditor.deduplicate(boxes);
       editor.#createOutlines();
       editor.#addToDrawLayer();
-      editor.rotate(editor.rotation);
+      editor.rotate(editor.pageRotation);
       // console.log("rotateBoxes", rotateBoxes, editor.#boxes);
       // editor.#lineBoxes = [...rotateBoxes];
     }

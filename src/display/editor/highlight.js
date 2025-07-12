@@ -632,6 +632,7 @@ class HighlightEditor extends AnnotationEditor {
       angle = (angle - this.rotation + 360) % 360;
       box = HighlightEditor.#rotateBbox(this.#highlightOutlines.box, angle);
     } else {
+      angle = this.pageRotation;
       // An highlight annotation is always drawn horizontally.
       box = HighlightEditor.#rotateBbox(
         [this.x, this.y, this.width, this.height],
