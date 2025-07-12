@@ -122,10 +122,6 @@
   transform-origin: 0 0;
   cursor: auto;
 
-  .selectedEditor {
-    z-index: 300 !important;
-  }
-
   &.drawing * {
     pointer-events: none !important;
   }
