@@ -1201,7 +1201,11 @@ class AnnotationEditor {
   render() {
     const div = (this.div = document.createElement("div"));
     div.setAttribute("data-editor-rotation", (360 - this.rotation) % 360);
-    div.className = this.name;
+    this.div.className =
+      this.name === "freeTextEditor"
+        ? `${this.name} rotation-${this.pageRotation}`
+        : this.name;
+    // div.className = this.name;
     div.setAttribute("id", this.id);
     div.tabIndex = this.#disabled ? -1 : 0;
     div.setAttribute("role", "application");
