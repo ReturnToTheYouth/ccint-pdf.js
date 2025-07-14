@@ -237,7 +237,25 @@ class HighlightToolbar {
     return [isLTR ? 1 - lastX : lastX, lastY];
   }
 
+  // 将层级调高
+  #raiseLayerIndex(textLayer) {
+    if (!textLayer) {
+      return;
+    }
+    textLayer.style.zIndex = "99";
+  }
+
+  // 取消层级
+  #lowerLayerIndex(textLayer) {
+    if (!textLayer) {
+      return;
+    }
+    textLayer.style.zIndex = "";
+  }
+
   show(parent, boxes, isLTR) {
+    const textLayer = parent.closest(".textLayer");
+    this.#raiseLayerIndex(textLayer);
     const [x, y] = this.#getLastPoint(boxes, isLTR);
     const { style } = (this.#toolbar ||= this.#render());
     parent.append(this.#toolbar);
@@ -252,6 +270,8 @@ class HighlightToolbar {
   }
 
   hide() {
+    const textLayer = this.#toolbar.closest(".textLayer");
+    this.#lowerLayerIndex(textLayer);
     this.#toolbar.remove();
     this.#uiManager._eventBus.dispatch("annotationtoolbartoolbarhide", {
       source: this,

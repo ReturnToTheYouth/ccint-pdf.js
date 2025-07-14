@@ -177,6 +177,7 @@ class AnnotationEditorLayer {
    */
   updateMode(mode = this.#uiManager.getMode()) {
     this.#cleanup();
+    this.resetLayerIndex();
     switch (mode) {
       case AnnotationEditorType.NONE:
         this.disableTextSelection();
@@ -238,6 +239,12 @@ class AnnotationEditorLayer {
 
   hasTextLayer(textLayer) {
     return textLayer === this.#textLayer?.div;
+  }
+
+  resetLayerIndex() {
+    if (this.#textLayer && this.#textLayer.div) {
+      this.#textLayer.div.style.zIndex = "";
+    }
   }
 
   /**
