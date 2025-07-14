@@ -1899,6 +1899,8 @@ class AnnotationEditor {
    */
   select() {
     this.makeResizable();
+    // 自动提高到最高层级
+    this.div.style.zIndex = "100000";
     this.div?.classList.add("selectedEditor");
     if (!this._editToolbar) {
       this.addEditToolbar().then(() => {
@@ -1945,6 +1947,7 @@ class AnnotationEditor {
   unselect() {
     this.#resizersDiv?.classList.add("hidden");
     this.div?.classList.remove("selectedEditor");
+    this.div.style.zIndex = this.#zIndex;
     if (this.div?.contains(document.activeElement)) {
       // Don't use this.div.blur() because we don't know where the focus will
       // go.
