@@ -247,6 +247,7 @@ class HighlightToolbar {
       source: this,
       parentDiv: parent,
       editToolbarDiv: this.#toolbar,
+      boxes,
     });
   }
 
