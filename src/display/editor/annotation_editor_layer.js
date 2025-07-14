@@ -145,6 +145,7 @@ class AnnotationEditorLayer {
     this.#textLayer = textLayer;
     this.drawLayer = drawLayer;
     this._structTree = structTreeLayer;
+    this.onTextLayerPointerDown = this._onTextLayerPointerDown.bind(this);
 
     this.#uiManager.addLayer(this);
   }
@@ -436,19 +437,26 @@ class AnnotationEditorLayer {
     }
   }
 
+  _onTextLayerPointerDown() {
+    this.#uiManager.unselectAll();
+  }
+
   enableBlankUnselect() {
     if (this.#textLayer?.div) {
-      console.log("enableBlankUnselect");
-      this.#textLayer.div.addEventListener("pointerdown", () =>
-        this.#uiManager.unselectAll()
+      this.#textLayer.div.addEventListener(
+        "pointerdown",
+        this.onTextLayerPointerDown
       );
     }
   }
 
   disableBlankUnselect() {
-    this.#textLayer.div.removeEventListener("pointerdown", () =>
-      this.#uiManager.unselectAll()
-    );
+    if (this.#textLayer?.div) {
+      this.#textLayer.div.removeEventListener(
+        "pointerdown",
+        this.onTextLayerPointerDown
+      );
+    }
   }
 
   #textLayerPointerDown(event) {
