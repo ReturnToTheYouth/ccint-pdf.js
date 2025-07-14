@@ -437,9 +437,12 @@ class AnnotationEditorLayer {
   }
 
   enableBlankUnselect() {
-    this.#textLayer.div.addEventListener("pointerdown", () =>
-      this.#uiManager.unselectAll()
-    );
+    if (this.#textLayer?.div) {
+      console.log("enableBlankUnselect");
+      this.#textLayer.div.addEventListener("pointerdown", () =>
+        this.#uiManager.unselectAll()
+      );
+    }
   }
 
   disableBlankUnselect() {
