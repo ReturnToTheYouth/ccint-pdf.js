@@ -528,10 +528,10 @@
   display: block;
 }
 
-.annotationEditorLayer .freeTextEditor .internal:empty::before {
+/* .annotationEditorLayer .freeTextEditor .internal:empty::before {
   content: attr(default-content);
   color: gray;
-}
+} */
 
 .annotationEditorLayer .freeTextEditor .internal:focus {
   outline: none;
