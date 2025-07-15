@@ -738,6 +738,14 @@ class AnnotationEditorUIManager {
       self.hasSomethingToControl();
 
     const textInputChecker = (_self, { target: el }) => {
+      // 如果正在聚焦文字批注进行输入，并且不是选中它自己本身，则不处理
+      if (
+        el.closest(".freeTextEditor") &&
+        !el.classList.contains("freeTextEditor") &&
+        document.activeElement === el
+      ) {
+        return false;
+      }
       if (el instanceof HTMLInputElement) {
         const { type } = el;
         return type !== "text" && type !== "number";
