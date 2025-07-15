@@ -639,8 +639,11 @@ class StrikethroughEditor extends AnnotationEditor {
   }
 
   #hasElementChanged(serialized) {
-    const { color } = this._initialData;
-    return serialized.color.some((c, i) => c !== color[i]);
+    const { color, opacity } = this._initialData;
+    return (
+      serialized.color.some((c, i) => c !== color[i]) ||
+      serialized.opacity !== opacity
+    );
   }
 
   /** @inheritdoc */
