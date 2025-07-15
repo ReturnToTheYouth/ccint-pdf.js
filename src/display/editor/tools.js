@@ -1205,15 +1205,6 @@ class AnnotationEditorUIManager {
   }
 
   findParent(x, y) {
-    let foundLayer = null;
-    const hiddenLayers = [];
-    for (const layer of this.#allLayers.values()) {
-      // 先把所有layer div的hidden去掉，便于查找位置
-      if (layer.div.hidden) {
-        hiddenLayers.push(layer);
-        layer.div.hidden = false;
-      }
-    }
     for (const layer of this.#allLayers.values()) {
       const {
         x: layerX,
@@ -1221,23 +1212,16 @@ class AnnotationEditorUIManager {
         width,
         height,
       } = layer.div.getBoundingClientRect();
-
       if (
         x >= layerX &&
         x <= layerX + width &&
         y >= layerY &&
         y <= layerY + height
       ) {
-        foundLayer = layer;
+        return layer;
       }
     }
-    // 恢复layer状态
-    for (const layer of hiddenLayers) {
-      if (layer !== foundLayer) {
-        layer.div.hidden = true;
-      }
-    }
-    return foundLayer;
+    return null;
   }
 
   disableUserSelect(value = false) {
