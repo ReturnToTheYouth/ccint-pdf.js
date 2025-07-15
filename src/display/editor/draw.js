@@ -880,7 +880,7 @@ class DrawingEditor extends AnnotationEditor {
     this.endDrawing(/* isAborted = */ false);
   }
 
-  static endDrawing(isAborted) {
+  static endDrawing(isAborted, needUnselect = false) {
     const parent = this._currentParent;
     if (!parent) {
       return null;
@@ -909,6 +909,9 @@ class DrawingEditor extends AnnotationEditor {
           mustBeCommitted: !isAborted,
         }
       );
+      if (needUnselect) {
+        editor.unselect();
+      }
       this._cleanup(true);
       return editor;
     }

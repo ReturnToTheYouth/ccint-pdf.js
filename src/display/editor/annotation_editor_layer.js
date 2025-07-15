@@ -1031,7 +1031,7 @@ class AnnotationEditorLayer {
     }
   }
 
-  endDrawingSession(isAborted = false) {
+  endDrawingSession(isAborted = false, needUnselect = false) {
     if (!this.#drawingAC) {
       return null;
     }
@@ -1039,7 +1039,7 @@ class AnnotationEditorLayer {
     this.#drawingAC.abort();
     this.#drawingAC = null;
     this.#focusedElement = null;
-    return this.#currentEditorType.endDrawing(isAborted);
+    return this.#currentEditorType.endDrawing(isAborted, needUnselect);
   }
 
   /**
@@ -1060,7 +1060,7 @@ class AnnotationEditorLayer {
 
   commitOrRemove() {
     if (this.#drawingAC) {
-      this.endDrawingSession();
+      this.endDrawingSession(false, true);
       return true;
     }
     return false;

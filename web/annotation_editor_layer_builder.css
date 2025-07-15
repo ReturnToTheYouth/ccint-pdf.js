@@ -214,6 +214,11 @@
   }
 }
 
+.annotationEditorLayer :is(.inkEditor) {
+  /* 取消自然border */
+  border: none;
+}
+
 .annotationEditorLayer :is(.freeTextEditor,
   .inkEditor,
   .stampEditor,
