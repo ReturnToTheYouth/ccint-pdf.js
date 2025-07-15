@@ -550,7 +550,11 @@ class AnnotationEditorLayer {
   detach(editor) {
     this.#editors.delete(editor.id);
     this.#accessibilityManager?.removePointerInTextLayer(editor.contentDiv);
-
+    // 如果detach的是activeEditor，则需要标记
+    if (this.#uiManager.getActive() === editor) {
+      // 取消激活
+      this.#uiManager.setActiveEditor(null);
+    }
     if (!this.#isDisabling && editor.annotationElementId) {
       this.#uiManager.addDeletedAnnotationElement(editor);
     }

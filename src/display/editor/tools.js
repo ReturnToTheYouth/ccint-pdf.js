@@ -1896,17 +1896,21 @@ class AnnotationEditorUIManager {
     this.#currentDrawingSession?.commitOrRemove();
 
     this.#mode = mode;
-    if (mode === AnnotationEditorType.NONE) {
-      // this.setEditingState(false);
-      // this.#disableAll();
+    // 无模式的时候开启所有layer的点击事件
+    // if (mode === AnnotationEditorType.NONE) {
+    // this.setEditingState(false);
+    // this.#disableAll();
 
-      // this._editorUndoBar?.hide();
+    // this._editorUndoBar?.hide();
 
-      // this.#updateModeCapability.resolve();
-      // return;
-      for (const layer of this.#allLayers.values()) {
+    // this.#updateModeCapability.resolve();
+    // return;
+    for (const layer of this.#allLayers.values()) {
+      if (mode === AnnotationEditorType.NONE) {
         layer.enableBlankUnselect();
         layer.removeCurrentModeTypeClass(); // 用于取消当前模式的class
+      } else {
+        layer.disableBlankUnselect();
       }
     }
     if (mode === AnnotationEditorType.SIGNATURE) {
@@ -1916,8 +1920,6 @@ class AnnotationEditorUIManager {
     await this.#enableAll();
     this.unselectAll();
     for (const layer of this.#allLayers.values()) {
-      // 自定义的点击事件取消
-      layer.disableBlankUnselect();
       layer.updateMode(mode);
     }
     if (!editId) {
