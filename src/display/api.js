@@ -2247,7 +2247,8 @@ class PDFWorker {
         );
       }
 
-      const worker = new Worker(workerSrc, { type: "module" });
+      // const worker = new Worker(workerSrc, { type: "module" });
+      const worker = new Worker(workerSrc);
       const messageHandler = new MessageHandler("main", "worker", worker);
       const terminateEarly = () => {
         ac.abort();
