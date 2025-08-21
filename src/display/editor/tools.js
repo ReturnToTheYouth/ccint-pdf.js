@@ -1614,7 +1614,18 @@ class AnnotationEditorUIManager {
    * @param {ClipboardEvent} event
    */
   copy(event) {
-    event.preventDefault();
+    // 判断target是不是文本输入框input 或者 textarea
+    const target = event.target;
+    const tagName = target.tagName.toLowerCase();
+    if (
+      !(
+        tagName === "input" ||
+        tagName === "textarea" ||
+        target.isContentEditable
+      )
+    ) {
+      event.preventDefault();
+    }
 
     // An editor is being edited so just commit it.
     this.#activeEditor?.commitOrRemove();
@@ -1651,7 +1662,19 @@ class AnnotationEditorUIManager {
    * @param {ClipboardEvent} event
    */
   async paste(event) {
-    event.preventDefault();
+    // 判断target是不是文本输入框input 或者 textarea
+    const target = event.target;
+    const tagName = target.tagName.toLowerCase();
+    if (
+      !(
+        tagName === "input" ||
+        tagName === "textarea" ||
+        target.isContentEditable
+      )
+    ) {
+      event.preventDefault();
+    }
+
     const { clipboardData } = event;
     for (const item of clipboardData.items) {
       for (const editorType of this.#editorTypes) {
