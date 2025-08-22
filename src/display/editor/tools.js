@@ -901,7 +901,8 @@ class AnnotationEditorUIManager {
       { signal }
     );
     this.#addSelectionListener();
-    this.#addDragAndDropListeners();
+    // ----暂时禁止批注的拖拽
+    // this.#addDragAndDropListeners();
     this.#addKeyboardManager();
     this.#annotationStorage = pdfDocument.annotationStorage;
     this.#filterFactory = pdfDocument.filterFactory;
