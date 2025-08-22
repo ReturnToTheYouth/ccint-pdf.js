@@ -66,7 +66,8 @@ class StampEditor extends AnnotationEditor {
 
   /** @inheritdoc */
   static isHandlingMimeForPasting(mime) {
-    return SupportedImageMimeTypes.includes(mime);
+    // return SupportedImageMimeTypes.includes(mime);
+    return false;
   }
 
   /** @inheritdoc */
