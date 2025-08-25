@@ -491,22 +491,22 @@ class AnnotationEditorLayer {
         true,
         /* updateButton = */ true
       );
-      this.#textLayer.div.classList.add("free");
-      this.toggleDrawing();
-      HighlightEditor.startHighlighting(
-        this,
-        this.#uiManager.direction === "ltr",
-        { target: this.#textLayer.div, x: event.x, y: event.y }
-      );
-      this.#textLayer.div.addEventListener(
-        "pointerup",
-        () => {
-          this.#textLayer.div.classList.remove("free");
-          this.toggleDrawing(true);
-        },
-        { once: true, signal: this.#uiManager._signal }
-      );
-      event.preventDefault();
+      // this.#textLayer.div.classList.add("free");
+      // this.toggleDrawing();
+      // HighlightEditor.startHighlighting(
+      //   this,
+      //   this.#uiManager.direction === "ltr",
+      //   { target: this.#textLayer.div, x: event.x, y: event.y }
+      // );
+      // this.#textLayer.div.addEventListener(
+      //   "pointerup",
+      //   () => {
+      //     this.#textLayer.div.classList.remove("free");
+      //     this.toggleDrawing(true);
+      //   },
+      //   { once: true, signal: this.#uiManager._signal }
+      // );
+      // event.preventDefault();
     }
   }
 
