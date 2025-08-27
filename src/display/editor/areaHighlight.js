@@ -114,7 +114,7 @@ class AreaHighlightEditor extends AnnotationEditor {
   }
 
   get isResizable() {
-    return true;
+    return false;
   }
 
   get opacity() {
@@ -299,6 +299,7 @@ class AreaHighlightEditor extends AnnotationEditor {
     if (this.div === null) {
       return;
     }
+    this.rotate(this.pageRotation);
 
     if (!this.isAttachedToDOM) {
       // At some point this editor was removed and we're rebuilting it,
