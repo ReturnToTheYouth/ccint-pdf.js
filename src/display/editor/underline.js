@@ -365,7 +365,7 @@ class UnderlineEditor extends AnnotationEditor {
     }
 
     this.#addToDrawLayer();
-
+    this.rotate(this.pageRotation);
     if (!this.isAttachedToDOM) {
       // At some point this editor was removed and we're rebuilding it,
       // hence we must add it to its parent.
