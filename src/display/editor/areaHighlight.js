@@ -321,8 +321,51 @@ class AreaHighlightEditor extends AnnotationEditor {
   postConfirm() {
     const parentWidth = this.div.parentNode.clientWidth;
     const parentHeight = this.div.parentNode.clientHeight;
-    this.width = (1.0 * this.originWidth) / parentWidth;
-    this.height = (1.0 * this.originHeight) / parentHeight;
+
+    // 计算最终的left和top位置
+    let finalLeft = this.sourceX;
+    let finalTop = this.sourceY;
+    let finalWidth = this.originWidth;
+    let finalHeight = this.originHeight;
+
+    // 处理负宽度的情况（向左拖动）
+    if (this.originWidth < 0) {
+      finalLeft = this.sourceX + this.originWidth;
+      finalWidth = Math.abs(this.originWidth);
+    }
+
+    // 处理负高度的情况（向上拖动）
+    if (this.originHeight < 0) {
+      finalTop = this.sourceY + this.originHeight;
+      finalHeight = Math.abs(this.originHeight);
+    }
+
+    // 确保区域高亮在页面边界内
+    if (finalLeft < 0) {
+      finalWidth += finalLeft; // 减少宽度以补偿负的left值
+      finalLeft = 0;
+    }
+    if (finalTop < 0) {
+      finalHeight += finalTop; // 减少高度以补偿负的top值
+      finalTop = 0;
+    }
+    if (finalLeft + finalWidth > parentWidth) {
+      finalWidth = parentWidth - finalLeft; // 限制宽度不超过页面右边界
+    }
+    if (finalTop + finalHeight > parentHeight) {
+      finalHeight = parentHeight - finalTop; // 限制高度不超过页面下边界
+    }
+
+    // 确保宽度和高度不为负数
+    finalWidth = Math.max(0, finalWidth);
+    finalHeight = Math.max(0, finalHeight);
+
+    // 设置相对坐标（相对于父容器的比例）
+    this.x = finalLeft / parentWidth;
+    this.y = finalTop / parentHeight;
+    this.width = finalWidth / parentWidth;
+    this.height = finalHeight / parentHeight;
+
     this.adaptSize();
     // 添加了editor之后取消自动选中
     // this.parent.setSelected(this);
@@ -349,6 +392,22 @@ class AreaHighlightEditor extends AnnotationEditor {
     } else {
       throw new Error("无法确定框选的缩放");
     }
+
+    // 确保区域高亮不超过页面边界
+    const parentWidth = this.div.parentNode.clientWidth;
+    const parentHeight = this.div.parentNode.clientHeight;
+
+    // 解析计算出的宽度和高度，确保不超过页面边界
+    const computedWidth = parseFloat(sWidth);
+    const computedHeight = parseFloat(sHeight);
+
+    if (!isNaN(computedWidth) && computedWidth > parentWidth) {
+      sWidth = parentWidth + "px";
+    }
+    if (!isNaN(computedHeight) && computedHeight > parentHeight) {
+      sHeight = parentHeight + "px";
+    }
+
     this.div.style.height = sHeight;
     this.div.style.width = sWidth;
   }

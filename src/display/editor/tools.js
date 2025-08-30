@@ -901,7 +901,8 @@ class AnnotationEditorUIManager {
       { signal }
     );
     this.#addSelectionListener();
-    this.#addDragAndDropListeners();
+    // ----暂时禁止批注的拖拽
+    // this.#addDragAndDropListeners();
     this.#addKeyboardManager();
     this.#annotationStorage = pdfDocument.annotationStorage;
     this.#filterFactory = pdfDocument.filterFactory;
@@ -1614,7 +1615,18 @@ class AnnotationEditorUIManager {
    * @param {ClipboardEvent} event
    */
   copy(event) {
-    event.preventDefault();
+    // 判断target是不是文本输入框input 或者 textarea
+    const target = event.target;
+    const tagName = target.tagName.toLowerCase();
+    if (
+      !(
+        tagName === "input" ||
+        tagName === "textarea" ||
+        target.isContentEditable
+      )
+    ) {
+      event.preventDefault();
+    }
 
     // An editor is being edited so just commit it.
     this.#activeEditor?.commitOrRemove();
@@ -1651,7 +1663,19 @@ class AnnotationEditorUIManager {
    * @param {ClipboardEvent} event
    */
   async paste(event) {
-    event.preventDefault();
+    // 判断target是不是文本输入框input 或者 textarea
+    const target = event.target;
+    const tagName = target.tagName.toLowerCase();
+    if (
+      !(
+        tagName === "input" ||
+        tagName === "textarea" ||
+        target.isContentEditable
+      )
+    ) {
+      event.preventDefault();
+    }
+
     const { clipboardData } = event;
     for (const item of clipboardData.items) {
       for (const editorType of this.#editorTypes) {

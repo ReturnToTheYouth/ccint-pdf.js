@@ -836,14 +836,14 @@ class Page {
           if (!annotation) {
             continue;
           }
-          if (annotation instanceof WidgetAnnotation) {
-            (widgetAnnotations ||= []).push(annotation);
-            continue;
-          }
-          if (annotation instanceof PopupAnnotation) {
-            (popupAnnotations ||= []).push(annotation);
-            continue;
-          }
+          // if (annotation instanceof WidgetAnnotation) {
+          //   (widgetAnnotations ||= []).push(annotation);
+          //   continue;
+          // }
+          // if (annotation instanceof PopupAnnotation) {
+          //   (popupAnnotations ||= []).push(annotation);
+          //   continue;
+          // }
           sortedAnnotations.push(annotation);
         }
         if (widgetAnnotations) {
