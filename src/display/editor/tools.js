@@ -1933,6 +1933,11 @@ class AnnotationEditorUIManager {
       if (mode === AnnotationEditorType.NONE) {
         layer.enableBlankUnselect();
         layer.removeCurrentModeTypeClass(); // 用于取消当前模式的class
+      } else if (
+        mode === AnnotationEditorType.STRIKETHROUGH ||
+        mode === AnnotationEditorType.UNDERLINE
+      ) {
+        layer.enableBlankUnselect();
       } else {
         layer.disableBlankUnselect();
       }
