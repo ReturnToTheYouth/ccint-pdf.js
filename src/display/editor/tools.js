@@ -1618,6 +1618,7 @@ class AnnotationEditorUIManager {
     // 判断target是不是文本输入框input 或者 textarea
     const target = event.target;
     const tagName = target.tagName.toLowerCase();
+    const isViewerChild = this.#container.contains(target);
     if (
       !(
         tagName === "input" ||
@@ -1625,7 +1626,10 @@ class AnnotationEditorUIManager {
         target.isContentEditable
       )
     ) {
-      event.preventDefault();
+      if (isViewerChild) {
+        // 是viewer孩子才阻止默认事件
+        event.preventDefault();
+      }
     }
 
     // An editor is being edited so just commit it.
@@ -1666,6 +1670,7 @@ class AnnotationEditorUIManager {
     // 判断target是不是文本输入框input 或者 textarea
     const target = event.target;
     const tagName = target.tagName.toLowerCase();
+    const isViewerChild = this.#container.contains(target);
     if (
       !(
         tagName === "input" ||
@@ -1673,7 +1678,10 @@ class AnnotationEditorUIManager {
         target.isContentEditable
       )
     ) {
-      event.preventDefault();
+      if (isViewerChild) {
+        // 是viewer孩子才阻止默认事件
+        event.preventDefault();
+      }
     }
 
     const { clipboardData } = event;
