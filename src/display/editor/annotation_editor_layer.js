@@ -35,8 +35,8 @@ import { AreaHighlightEditor } from "./areaHighlight.js";
 import { FreeTextEditor } from "./freetext.js";
 import { getLeftTopCoord } from "./tools.js";
 import { HighlightEditor } from "./highlight.js";
-import { InkEditor } from "./ink.js";
-import { setLayerDimensions } from "../display_utils.js";
+import { InkDrawingOptions, InkEditor } from "./ink.js";
+import { PixelsPerInch, setLayerDimensions } from "../display_utils.js";
 import { SignatureEditor } from "./signature.js";
 import { StampEditor } from "./stamp.js";
 import { StrikethroughEditor } from "./strikethrough.js";
@@ -278,6 +278,40 @@ class AnnotationEditorLayer {
 
   toggleAnnotationLayerPointerEvents(enabled = false) {
     this.#annotationLayer?.div.classList.toggle("disabled", !enabled);
+  }
+
+  static resetEditorDefaults() {
+    // 重置各个编辑器的 static 默认颜色值
+    UnderlineEditor._defaultColor = "#F74A4A";
+    UnderlineEditor._defaultOpacity = 1;
+
+    HighlightEditor._defaultColor = "#F7D04A";
+    HighlightEditor._defaultOpacity = 0.3;
+    HighlightEditor._defaultThickness = 12;
+
+    AreaHighlightEditor._defaultColor = "#F7D04A";
+    AreaHighlightEditor._defaultOpacity = 0.3;
+
+    StrikethroughEditor._defaultColor = "#F74A4A";
+    StrikethroughEditor._defaultOpacity = 1;
+
+    FreeTextEditor._defaultColor = "#000000";
+    FreeTextEditor._defaultFontSize = 14;
+    FreeTextEditor._defaultOpacity = 1;
+
+    InkEditor._defaultDrawingOptions = new InkDrawingOptions({
+      realScale: PixelsPerInch.PDF_TO_CSS_UNITS,
+      rotation: 0,
+    });
+  }
+
+  static geteditordefaults() {
+    return [
+      UnderlineEditor._defaultColor,
+      HighlightEditor._defaultColor,
+      AreaHighlightEditor._defaultColor,
+      StrikethroughEditor._defaultColor,
+    ];
   }
 
   /**
