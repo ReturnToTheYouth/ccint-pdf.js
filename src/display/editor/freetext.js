@@ -535,6 +535,10 @@ class FreeTextEditor extends AnnotationEditor {
       return;
     }
 
+    // 如果编辑器已被移除（parent 为 null），直接返回
+    if (!this.parent) {
+      return;
+    }
     this.parent.setEditingState(false);
     // 如果是全局开启模式，执行更新toolbar和模式
     if (global) {
