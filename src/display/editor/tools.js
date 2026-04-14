@@ -748,7 +748,8 @@ class AnnotationEditorUIManager {
       }
       if (el instanceof HTMLInputElement) {
         const { type } = el;
-        return type !== "text" && type !== "number";
+        // 文本、数字、密码输入类型不处理、不阻止默认行为
+        return type !== "text" && type !== "number" && type !== "password";
       }
       return true;
     };
