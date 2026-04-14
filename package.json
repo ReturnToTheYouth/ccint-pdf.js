@@ -1,6 +1,7 @@
 {
   "name": "@ccint/pdf.js",
   "type": "module",
+  "author": "yihan_dai,zhihui_huo",
   "devDependencies": {
     "@babel/core": "^7.26.10",
     "@babel/plugin-transform-runtime": "^7.27.4",
