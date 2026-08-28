@@ -35,6 +35,16 @@ import { FreeTextAnnotationElement } from "../annotation_layer.js";
 
 const EOL_PATTERN = /\r\n?|\n/g;
 
+function normalizeOpacity(opacity, fallback = 1) {
+  const normalizedFallback =
+    typeof fallback === "number" && Number.isFinite(fallback)
+      ? Math.min(1, Math.max(0, fallback))
+      : 1;
+  return typeof opacity === "number" && Number.isFinite(opacity)
+    ? Math.min(1, Math.max(0, opacity))
+    : normalizedFallback;
+}
+
 /**
  * Basic text editor in order to create a FreeTex annotation.
  */
@@ -43,11 +53,29 @@ class FreeTextEditor extends AnnotationEditor {
 
   #content = "";
 
+  #contentBeforeEdit = null;
+
+  #drawId = null;
+
+  #drawLayer = null;
+
   #editorDivId = `${this.id}-editor`;
 
   #editModeAC = null;
 
   #fontSize;
+
+  #isComposing = false;
+
+  #measureDiv = null;
+
+  #measurementRaf = null;
+
+  #isShown = true;
+
+  #hasFixedWidth = false;
+
+  #hasFixedHeight = false;
 
   opacity;
 
@@ -156,7 +184,10 @@ class FreeTextEditor extends AnnotationEditor {
       FreeTextEditor._defaultColor ||
       AnnotationEditor._defaultLineColor;
     this.#fontSize = params.fontSize || FreeTextEditor._defaultFontSize;
-    this.opacity = params.opacity || FreeTextEditor._defaultOpacity;
+    this.opacity = normalizeOpacity(
+      params.opacity ?? FreeTextEditor._defaultOpacity,
+      FreeTextEditor._defaultOpacity
+    );
     this.#textParams = params.textParams || {
       ...FreeTextEditor._defaultTextParams,
     };
@@ -193,7 +224,7 @@ class FreeTextEditor extends AnnotationEditor {
         FreeTextEditor._defaultColor = value;
         break;
       case AnnotationEditorParamsType.FREETEXT_OPACITY:
-        FreeTextEditor._defaultOpacity = value;
+        FreeTextEditor._defaultOpacity = normalizeOpacity(value);
         break;
       case AnnotationEditorParamsType.FREETEXT_BOLD:
         FreeTextEditor._defaultTextParams.bold = value;
@@ -294,7 +325,7 @@ class FreeTextEditor extends AnnotationEditor {
       ],
       [
         AnnotationEditorParamsType.FREETEXT_OPACITY,
-        this.opacity || FreeTextEditor._defaultOpacity,
+        this.opacity ?? FreeTextEditor._defaultOpacity,
       ],
       [AnnotationEditorParamsType.FREETEXT_BOLD, this.#textParams.bold],
       [AnnotationEditorParamsType.FREETEXT_ITALIC, this.#textParams.italic],
@@ -322,7 +353,8 @@ class FreeTextEditor extends AnnotationEditor {
       this.editorDiv.style.fontSize = `calc(${size}px * var(--total-scale-factor))`;
       this.translate(0, -(size - this.#fontSize) * this.parentScale);
       this.#fontSize = size;
-      this.#setEditorDimensions();
+      this.#scheduleMeasurement();
+      this.#syncDrawLayer();
     };
     const savedFontsize = this.#fontSize;
     this.addCommands({
@@ -346,6 +378,7 @@ class FreeTextEditor extends AnnotationEditor {
         col,
         this.opacity
       );
+      this.#syncDrawLayer();
     };
     const savedColor = this.#color;
     this.addCommands({
@@ -365,8 +398,10 @@ class FreeTextEditor extends AnnotationEditor {
    */
   #updateOpacity(opacity) {
     const setOpacity = opa => {
+      opa = normalizeOpacity(opa);
       this.editorDiv.style.color = addOpacityToColor(this.#color, opa);
       this.opacity = opa;
+      this.#syncDrawLayer();
     };
     const savedOpacity = this.opacity;
     this.addCommands({
@@ -388,7 +423,8 @@ class FreeTextEditor extends AnnotationEditor {
     const setBold = bol => {
       this.editorDiv.style.fontWeight = bol ? "bold" : "normal";
       this.#textParams.bold = bol;
-      this.#setEditorDimensions();
+      this.#scheduleMeasurement();
+      this.#syncDrawLayer();
     };
     const savedBold = this.#textParams.bold;
     this.addCommands({
@@ -410,7 +446,8 @@ class FreeTextEditor extends AnnotationEditor {
     const setItalic = ital => {
       this.editorDiv.style.fontStyle = ital ? "italic" : "normal";
       this.#textParams.italic = ital;
-      this.#setEditorDimensions();
+      this.#scheduleMeasurement();
+      this.#syncDrawLayer();
     };
     const savedItalic = this.#textParams.italic;
     this.addCommands({
@@ -435,6 +472,7 @@ class FreeTextEditor extends AnnotationEditor {
       if (under && this.#textParams.strikethrough) {
         this.#textParams.strikethrough = false;
       }
+      this.#syncDrawLayer();
     };
     const savedUnderline = this.#textParams.underline;
     this.addCommands({
@@ -459,6 +497,7 @@ class FreeTextEditor extends AnnotationEditor {
       if (strik && this.#textParams.underline) {
         this.#textParams.underline = false;
       }
+      this.#syncDrawLayer();
     };
     const savedStrikethrough = this.#textParams.strikethrough;
     this.addCommands({
@@ -480,6 +519,7 @@ class FreeTextEditor extends AnnotationEditor {
     const setAlignment = align => {
       this.editorDiv.style.textAlign = align;
       this.#textParams.alignment = align;
+      this.#syncDrawLayer();
     };
     const savedAlignment = this.#textParams.alignment;
     this.addCommands({
@@ -500,6 +540,102 @@ class FreeTextEditor extends AnnotationEditor {
    */
   _translateEmpty(x, y) {
     this._uiManager.translateSelectedEditors(x, y, /* noCommit = */ true);
+  }
+
+  /** @inheritdoc */
+  setAt(x, y, tx, ty) {
+    super.setAt(x, y, tx, ty);
+    this.#syncDrawLayer();
+  }
+
+  /** @inheritdoc */
+  _onTranslating(_x, _y) {
+    this.#syncDrawLayer();
+  }
+
+  /** @inheritdoc */
+  _onTranslated(_x, _y) {
+    this.#syncDrawLayer();
+  }
+
+  _onStartResizing() {
+    this._editToolbar?.hide();
+  }
+
+  _onResizing() {
+    this.#hasFixedWidth = true;
+    this.#hasFixedHeight = true;
+    this.#updateMeasureContent();
+    this.#syncDrawLayer();
+  }
+
+  _onResized() {
+    if (!this.#hasFixedWidth) {
+      this.div.style.width = "auto";
+    }
+    if (!this.#hasFixedHeight) {
+      this.div.style.height = "auto";
+    }
+    this.#flushPendingMeasurement();
+  }
+
+  _onStopResizing() {
+    this.#flushPendingMeasurement();
+    if (this.isSelected) {
+      this._editToolbar?.show();
+    }
+  }
+
+  _getResizeState() {
+    return {
+      hasFixedWidth: this.#hasFixedWidth,
+      hasFixedHeight: this.#hasFixedHeight,
+    };
+  }
+
+  _setResizeState(state) {
+    if (state) {
+      this.#hasFixedWidth = state.hasFixedWidth;
+      this.#hasFixedHeight = state.hasFixedHeight;
+    }
+  }
+
+  _constrainResize(_name, width, height) {
+    return [
+      width,
+      Math.min(1, Math.max(height, this.#getMinimumContentHeight(width))),
+    ];
+  }
+
+  /** @inheritdoc */
+  get isResizable() {
+    return true;
+  }
+
+  /** @inheritdoc */
+  get resizerNames() {
+    return [
+      "topLeft",
+      "topMiddle",
+      "topRight",
+      "middleRight",
+      "bottomRight",
+      "bottomMiddle",
+      "bottomLeft",
+      "middleLeft",
+    ];
+  }
+
+  /** @inheritdoc */
+  rotate(_angle) {
+    this.#syncDrawLayer();
+  }
+
+  /** @inheritdoc */
+  show(visible = this._isVisible) {
+    this.#isShown = visible;
+    super.show(visible);
+    this.#syncDrawLayer();
   }
 
   /** @inheritdoc */
@@ -527,6 +663,26 @@ class FreeTextEditor extends AnnotationEditor {
       // hence we must add it to its parent.
       this.parent.add(this);
     }
+    this.#syncDrawLayer();
+  }
+
+  setParent(parent) {
+    const oldDrawLayer = this.#drawLayer || this.parent?.drawLayer;
+    const newDrawLayer = parent?.drawLayer || null;
+
+    if (this.#drawId !== null) {
+      if (oldDrawLayer && newDrawLayer && oldDrawLayer !== newDrawLayer) {
+        oldDrawLayer.updateParent(this.#drawId, newDrawLayer);
+      } else if (!newDrawLayer) {
+        oldDrawLayer?.remove(this.#drawId);
+        this.#drawId = null;
+      }
+    }
+    this.#drawLayer = newDrawLayer;
+    super.setParent(parent);
+    if (parent) {
+      this.#syncDrawLayer();
+    }
   }
 
   /** @inheritdoc */
@@ -545,8 +701,11 @@ class FreeTextEditor extends AnnotationEditor {
       this.parent.updateToolbar(AnnotationEditorType.FREETEXT);
     }
     super.enableEditMode();
+    this.#contentBeforeEdit ??= this.#content;
     this.overlayDiv.classList.remove("enabled");
-    this.editorDiv.contentEditable = true;
+    this.editorDiv.readOnly = false;
+    this.div.classList.add("editing");
+    this.#syncDrawLayer();
     this._isDraggable = false;
     this.div.removeAttribute("aria-activedescendant");
 
@@ -573,9 +732,16 @@ class FreeTextEditor extends AnnotationEditor {
     this.editorDiv.addEventListener("input", this.editorDivInput.bind(this), {
       signal,
     });
-    this.editorDiv.addEventListener("paste", this.editorDivPaste.bind(this), {
-      signal,
-    });
+    this.editorDiv.addEventListener(
+      "compositionstart",
+      this.editorDivCompositionStart.bind(this),
+      { signal }
+    );
+    this.editorDiv.addEventListener(
+      "compositionend",
+      this.editorDivCompositionEnd.bind(this),
+      { signal }
+    );
   }
 
   /** @inheritdoc */
@@ -587,15 +753,17 @@ class FreeTextEditor extends AnnotationEditor {
     this.parent.setEditingState(true);
     super.disableEditMode();
     this.overlayDiv.classList.add("enabled");
-    this.editorDiv.contentEditable = false;
+    this.editorDiv.readOnly = true;
+    this.div.classList.remove("editing");
     this.div.setAttribute("aria-activedescendant", this.#editorDivId);
     this._isDraggable = true;
 
     this.#editModeAC?.abort();
     this.#editModeAC = null;
+    this.#setCompositionState(false, this.#isComposing);
 
-    // On Chrome, the focus is given to <body> when contentEditable is set to
-    // false, hence we focus the div.
+    // Keep keyboard focus on the editor container after making the textarea
+    // read-only.
     this.div.focus({
       preventScroll: true /* See issue #15744 */,
     });
@@ -603,6 +771,7 @@ class FreeTextEditor extends AnnotationEditor {
     // In case the blur callback hasn't been called.
     this.isEditing = false;
     this.parent.div.classList.add("freetextEditing");
+    this.#syncDrawLayer();
   }
 
   /** @inheritdoc */
@@ -634,43 +803,51 @@ class FreeTextEditor extends AnnotationEditor {
 
   /** @inheritdoc */
   isEmpty() {
-    return !this.editorDiv || this.editorDiv.innerText.trim() === "";
+    return this.#content.trim() === "";
+  }
+
+  /** @inheritdoc */
+  commitOrRemove() {
+    if (
+      this.isEmpty() &&
+      !(this.isInEditMode() && this.#contentBeforeEdit?.trim())
+    ) {
+      this.remove();
+    } else {
+      this.commit();
+    }
   }
 
   /** @inheritdoc */
   remove() {
     this.isEditing = false;
-    // if (this.parent) {
-    //   this.parent.setEditingState(true);
-    //   this.parent.div.classList.add("freetextEditing");
-    // }
+    this.#setCompositionState(false);
+    this.#cancelPendingMeasurement();
+    this.#cleanDrawLayer();
     super.remove();
-  }
-
-  /**
-   * Extract the text from this editor.
-   * @returns {string}
-   */
-  #extractText() {
-    // We don't use innerText because there are some bugs with line breaks.
-    const buffer = [];
-    this.editorDiv.normalize();
-    let prevChild = null;
-    for (const child of this.editorDiv.childNodes) {
-      if (prevChild?.nodeType === Node.TEXT_NODE && child.nodeName === "BR") {
-        // It can happen if the user uses shift+enter to add a new line.
-        // If we don't skip it, we'll end up with an extra line (one for the
-        // text and one for the br element).
-        continue;
-      }
-      buffer.push(FreeTextEditor.#getNodeContent(child));
-      prevChild = child;
-    }
-    return buffer.join("\n");
+    // super.remove() can commit a non-empty editor. Committing exits edit mode
+    // and may recreate its SVG projection, so always clean once more after the
+    // editor has been detached.
+    this.#cleanDrawLayer();
   }
 
   #setEditorDimensions() {
+    if (!this.parent || !this.div) {
+      return;
+    }
     const [parentWidth, parentHeight] = this.parentDimensions;
+
+    if (this.#hasFixedHeight) {
+      const minHeight = this.#getMinimumContentHeight(
+        this.width,
+        /* updateMeasure = */ false
+      );
+      if (minHeight > this.height) {
+        this.height = minHeight;
+        this.setDims(parentWidth * this.width, parentHeight * this.height);
+        this.fixAndSetPosition();
+      }
+    }
 
     let rect;
     if (this.isAttachedToDOM) {
@@ -700,6 +877,295 @@ class FreeTextEditor extends AnnotationEditor {
       this.height = rect.width / parentHeight;
     }
     this.fixAndSetPosition();
+    this.#syncDrawLayer();
+  }
+
+  #scheduleMeasurement() {
+    if (this.#isComposing) {
+      return;
+    }
+    this.#updateMeasureContent();
+    if (this.#measurementRaf !== null) {
+      return;
+    }
+    this.#measurementRaf = requestAnimationFrame(() => {
+      this.#measurementRaf = null;
+      this.#setEditorDimensions();
+    });
+  }
+
+  #cancelPendingMeasurement() {
+    if (this.#measurementRaf === null) {
+      return;
+    }
+    cancelAnimationFrame(this.#measurementRaf);
+    this.#measurementRaf = null;
+  }
+
+  #flushPendingMeasurement(force = false) {
+    if (this.#isComposing && !force) {
+      return;
+    }
+    this.#cancelPendingMeasurement();
+    this.#updateMeasureContent();
+    this.#setEditorDimensions();
+  }
+
+  #setCompositionState(isComposing, measure = false) {
+    if (this.editorDiv) {
+      this.#content = this.editorDiv.value.replaceAll(EOL_PATTERN, "\n");
+    }
+
+    if (isComposing) {
+      this.#cancelPendingMeasurement();
+      this.#isComposing = true;
+
+      let useNoWrap = false;
+      if (this.#measureDiv && !this.#content.includes("\n")) {
+        const height = this.#measureDiv.offsetHeight;
+        const lineHeight = parseFloat(
+          getComputedStyle(this.#measureDiv).lineHeight
+        );
+        useNoWrap =
+          Number.isFinite(lineHeight) && height <= Math.ceil(lineHeight) + 1;
+      }
+      this.div?.classList.toggle("imeComposingNoWrap", useNoWrap);
+      return;
+    }
+
+    this.#isComposing = false;
+    this.div?.classList.remove("imeComposingNoWrap");
+    if (measure) {
+      this.#scheduleMeasurement();
+    }
+  }
+
+  #getMinimumContentHeight(candidateWidth, updateMeasure = true) {
+    if (!this.#measureDiv) {
+      return 0;
+    }
+    if (updateMeasure) {
+      this.#updateMeasureContent(candidateWidth, /* forceFixedWidth = */ true);
+    }
+    const padding = FreeTextEditor._internalPadding * this.parentScale;
+    const [, parentHeight] = this.parentDimensions;
+    return Math.min(
+      1,
+      (this.#measureDiv.offsetHeight + 2 * padding) / parentHeight
+    );
+  }
+
+  #updateMeasureContent(candidateWidth = this.width, forceFixedWidth = false) {
+    if (this.#measureDiv) {
+      const { style } = this.editorDiv;
+      for (const name of [
+        "fontSize",
+        "fontWeight",
+        "fontStyle",
+        "textDecoration",
+        "textAlign",
+      ]) {
+        this.#measureDiv.style[name] = style[name];
+      }
+
+      const [parentWidth, parentHeight] = this.parentDimensions;
+      let availableWidth;
+      switch (this.rotation) {
+        case 90:
+          availableWidth = this.y * parentHeight;
+          break;
+        case 180:
+          availableWidth = this.x * parentWidth;
+          break;
+        case 270:
+          availableWidth = (1 - this.y) * parentHeight;
+          break;
+        default:
+          availableWidth = (1 - this.x) * parentWidth;
+          break;
+      }
+      const padding = FreeTextEditor._internalPadding * this.parentScale;
+      const maxContentWidth = Math.max(1, availableWidth - 2 * padding);
+      this.#measureDiv.style.maxWidth = `${maxContentWidth}px`;
+      this.#measureDiv.style.width =
+        this.#hasFixedWidth || forceFixedWidth
+          ? `${
+              forceFixedWidth
+                ? Math.max(1, candidateWidth * parentWidth - 2 * padding)
+                : Math.min(
+                    maxContentWidth,
+                    Math.max(1, candidateWidth * parentWidth - 2 * padding)
+                  )
+            }px`
+          : "max-content";
+
+      // The zero-width character makes a final empty line participate in
+      // layout without changing the displayed or serialized value.
+      this.#measureDiv.textContent =
+        !this.#content || this.#content.endsWith("\n")
+          ? `${this.#content}\u200b`
+          : this.#content;
+    }
+  }
+
+  #getDrawLayerGeometry() {
+    const {
+      x,
+      y,
+      width,
+      height,
+      rotation,
+      parentRotation,
+      parentDimensions: [pW, pH],
+    } = this;
+    let bbox;
+    switch ((rotation * 4 + parentRotation) / 90) {
+      case 1:
+        bbox = [1 - y - height, x, height, width];
+        break;
+      case 2:
+        bbox = [1 - x - width, 1 - y - height, width, height];
+        break;
+      case 3:
+        bbox = [y, 1 - x - width, height, width];
+        break;
+      case 4:
+        bbox = [
+          x,
+          y - width * (pW / pH),
+          height * (pH / pW),
+          width * (pW / pH),
+        ];
+        break;
+      case 5:
+        bbox = [1 - y, x, width * (pW / pH), height * (pH / pW)];
+        break;
+      case 6:
+        bbox = [
+          1 - x - height * (pH / pW),
+          1 - y,
+          height * (pH / pW),
+          width * (pW / pH),
+        ];
+        break;
+      case 7:
+        bbox = [
+          y - width * (pW / pH),
+          1 - x - height * (pH / pW),
+          width * (pW / pH),
+          height * (pH / pW),
+        ];
+        break;
+      case 8:
+        bbox = [x - width, y - height, width, height];
+        break;
+      case 9:
+        bbox = [1 - y, x - width, height, width];
+        break;
+      case 10:
+        bbox = [1 - x, 1 - y, width, height];
+        break;
+      case 11:
+        bbox = [y - height, 1 - x, height, width];
+        break;
+      case 12:
+        bbox = [
+          x - height * (pH / pW),
+          y,
+          height * (pH / pW),
+          width * (pW / pH),
+        ];
+        break;
+      case 13:
+        bbox = [
+          1 - y - width * (pW / pH),
+          x - height * (pH / pW),
+          width * (pW / pH),
+          height * (pH / pW),
+        ];
+        break;
+      case 14:
+        bbox = [
+          1 - x,
+          1 - y - width * (pW / pH),
+          height * (pH / pW),
+          width * (pW / pH),
+        ];
+        break;
+      case 15:
+        bbox = [y, 1 - x, width * (pW / pH), height * (pH / pW)];
+        break;
+      default:
+        bbox = [x, y, width, height];
+        break;
+    }
+    const contentRotation = (parentRotation - rotation + 360) % 360;
+    let contentSize = { width: 100, height: 100 };
+    if (contentRotation % 180 !== 0) {
+      const rootWidth = bbox[2] * pW;
+      const rootHeight = bbox[3] * pH;
+      if (rootWidth > 0 && rootHeight > 0) {
+        // The root bbox is already rotated into CanvasWrapper coordinates.
+        // Rotate the XHTML content inside it using the opposite dimensions.
+        contentSize = {
+          width: (100 * rootHeight) / rootWidth,
+          height: (100 * rootWidth) / rootHeight,
+        };
+      }
+    }
+    return {
+      bbox: {
+        x: bbox[0],
+        y: bbox[1],
+        width: bbox[2],
+        height: bbox[3],
+      },
+      contentRotation,
+      contentSize,
+    };
+  }
+
+  #getDrawLayerStyle() {
+    return {
+      fontSize: this.#fontSize,
+      color: addOpacityToColor(this.#color, this.opacity),
+      fontWeight: this.#textParams.bold ? "bold" : "normal",
+      fontStyle: this.#textParams.italic ? "italic" : "normal",
+      textDecoration: this.#textParams.underline
+        ? "underline"
+        : this.#textParams.strikethrough
+          ? "line-through"
+          : "none",
+      textAlign: this.#textParams.alignment,
+      lineHeight: LINE_FACTOR,
+    };
+  }
+
+  #syncDrawLayer() {
+    const drawLayer = this.parent?.drawLayer || this.#drawLayer;
+    if (!drawLayer || !this.#content || !this.width || !this.height) {
+      return;
+    }
+    this.#drawLayer = drawLayer;
+    const properties = {
+      ...this.#getDrawLayerGeometry(),
+      value: this.#content,
+      style: this.#getDrawLayerStyle(),
+      hidden: this.isInEditMode() || !this.#isShown,
+    };
+    if (this.#drawId === null) {
+      this.#drawId = drawLayer.drawText(properties);
+    } else {
+      drawLayer.updateText(this.#drawId, properties);
+    }
+  }
+
+  #cleanDrawLayer() {
+    if (this.#drawId === null) {
+      return;
+    }
+    this.#drawLayer?.remove(this.#drawId);
+    this.#drawId = null;
   }
 
   /**
@@ -711,23 +1177,28 @@ class FreeTextEditor extends AnnotationEditor {
       return;
     }
 
+    this.#setCompositionState(false);
+    this.#flushPendingMeasurement(/* force = */ true);
+    const savedText = this.#contentBeforeEdit ?? this.#content;
+    const newText = this.#content;
     super.commit();
     this.disableEditMode();
-    const savedText = this.#content;
-    const newText = (this.#content = this.#extractText().trimEnd());
+    this.#contentBeforeEdit = null;
     if (savedText === newText) {
+      this.#syncDrawLayer();
       return;
     }
 
     const setText = text => {
       this.#content = text;
+      this.#setContent();
       if (!text) {
         this.remove();
         return;
       }
-      this.#setContent();
       this._uiManager.rebuild(this);
-      this.#setEditorDimensions();
+      this.#flushPendingMeasurement();
+      this.#syncDrawLayer();
     };
     this.addCommands({
       cmd: () => {
@@ -738,7 +1209,12 @@ class FreeTextEditor extends AnnotationEditor {
       },
       mustExec: false,
     });
-    this.#setEditorDimensions();
+    if (!newText) {
+      this.remove();
+      return;
+    }
+    this.#flushPendingMeasurement();
+    this.#syncDrawLayer();
   }
 
   /** @inheritdoc */
@@ -782,22 +1258,37 @@ class FreeTextEditor extends AnnotationEditor {
 
   editorDivBlur(event) {
     this.isEditing = false;
+    this.#setCompositionState(false, this.#isComposing);
   }
 
   editorDivInput(event) {
+    this.#content = this.editorDiv.value.replaceAll(EOL_PATTERN, "\n");
+    if (!this.#isComposing && !event.isComposing) {
+      this.#scheduleMeasurement();
+    }
+    this.parent.div.classList.toggle("freetextEditing", this.isEmpty());
+  }
+
+  editorDivCompositionStart() {
+    this.#setCompositionState(true);
+  }
+
+  editorDivCompositionEnd(event) {
+    this.#setCompositionState(false, /* measure = */ true);
     this.parent.div.classList.toggle("freetextEditing", this.isEmpty());
   }
 
   /** @inheritdoc */
   disableEditing() {
-    this.editorDiv.setAttribute("role", "comment");
-    this.editorDiv.removeAttribute("aria-multiline");
+    this.#setCompositionState(false, this.#isComposing);
+    if (!this.isInEditMode()) {
+      this.editorDiv.readOnly = true;
+    }
   }
 
   /** @inheritdoc */
   enableEditing() {
-    this.editorDiv.setAttribute("role", "textbox");
-    this.editorDiv.setAttribute("aria-multiline", true);
+    this.editorDiv.readOnly = !this.isInEditMode();
   }
 
   /** @inheritdoc */
@@ -813,15 +1304,19 @@ class FreeTextEditor extends AnnotationEditor {
     }
 
     super.render();
-    this.editorDiv = document.createElement("div");
+    if (this._isCopy || this.annotationElementId) {
+      this.#hasFixedWidth = true;
+      this.#hasFixedHeight = true;
+    }
+    this.editorDiv = document.createElement("textarea");
     this.editorDiv.className = "internal";
 
     this.editorDiv.setAttribute("id", this.#editorDivId);
     this.editorDiv.setAttribute("data-l10n-id", "pdfjs-free-text2");
     this.editorDiv.setAttribute("data-l10n-attrs", "default-content");
-    this.enableEditing();
-
-    this.editorDiv.contentEditable = true;
+    this.editorDiv.setAttribute("aria-multiline", true);
+    this.editorDiv.spellcheck = false;
+    this.editorDiv.readOnly = false;
 
     const { style } = this.editorDiv;
     style.fontSize = `calc(${this.#fontSize}px * var(--total-scale-factor))`;
@@ -838,6 +1333,12 @@ class FreeTextEditor extends AnnotationEditor {
     style.textAlign = this.#textParams.alignment;
 
     this.div.append(this.editorDiv);
+
+    this.#measureDiv = document.createElement("div");
+    this.#measureDiv.className = "freetextMeasure";
+    this.#measureDiv.setAttribute("aria-hidden", true);
+    this.div.append(this.#measureDiv);
+    this.#setContent();
 
     this.overlayDiv = document.createElement("div");
     this.overlayDiv.classList.add("overlay", "enabled");
@@ -896,10 +1397,10 @@ class FreeTextEditor extends AnnotationEditor {
 
       this.#setContent();
       this._isDraggable = true;
-      this.editorDiv.contentEditable = false;
+      this.editorDiv.readOnly = true;
     } else {
       this._isDraggable = false;
-      this.editorDiv.contentEditable = true;
+      this.editorDiv.readOnly = false;
     }
 
     if (typeof PDFJSDev !== "undefined" && PDFJSDev.test("TESTING")) {
@@ -909,118 +1410,18 @@ class FreeTextEditor extends AnnotationEditor {
     return this.div;
   }
 
-  static #getNodeContent(node) {
-    return (
-      node.nodeType === Node.TEXT_NODE ? node.nodeValue : node.innerText
-    ).replaceAll(EOL_PATTERN, "");
-  }
-
-  editorDivPaste(event) {
-    const clipboardData = event.clipboardData || window.clipboardData;
-    const { types } = clipboardData;
-    if (types.length === 1 && types[0] === "text/plain") {
-      return;
-    }
-
-    event.preventDefault();
-    const paste = FreeTextEditor.#deserializeContent(
-      clipboardData.getData("text") || ""
-    ).replaceAll(EOL_PATTERN, "\n");
-    if (!paste) {
-      return;
-    }
-    const selection = window.getSelection();
-    if (!selection.rangeCount) {
-      return;
-    }
-    this.editorDiv.normalize();
-    selection.deleteFromDocument();
-    const range = selection.getRangeAt(0);
-    if (!paste.includes("\n")) {
-      range.insertNode(document.createTextNode(paste));
-      this.editorDiv.normalize();
-      selection.collapseToStart();
-      return;
-    }
-
-    // Collect the text before and after the caret.
-    const { startContainer, startOffset } = range;
-    const bufferBefore = [];
-    const bufferAfter = [];
-    if (startContainer.nodeType === Node.TEXT_NODE) {
-      const parent = startContainer.parentElement;
-      bufferAfter.push(
-        startContainer.nodeValue.slice(startOffset).replaceAll(EOL_PATTERN, "")
-      );
-      if (parent !== this.editorDiv) {
-        let buffer = bufferBefore;
-        for (const child of this.editorDiv.childNodes) {
-          if (child === parent) {
-            buffer = bufferAfter;
-            continue;
-          }
-          buffer.push(FreeTextEditor.#getNodeContent(child));
-        }
-      }
-      bufferBefore.push(
-        startContainer.nodeValue
-          .slice(0, startOffset)
-          .replaceAll(EOL_PATTERN, "")
-      );
-    } else if (startContainer === this.editorDiv) {
-      let buffer = bufferBefore;
-      let i = 0;
-      for (const child of this.editorDiv.childNodes) {
-        if (i++ === startOffset) {
-          buffer = bufferAfter;
-        }
-        buffer.push(FreeTextEditor.#getNodeContent(child));
-      }
-    }
-    this.#content = `${bufferBefore.join("\n")}${paste}${bufferAfter.join("\n")}`;
-    this.#setContent();
-
-    // Set the caret at the right position.
-    const newRange = new Range();
-    let beforeLength = Math.sumPrecise(bufferBefore.map(line => line.length));
-    for (const { firstChild } of this.editorDiv.childNodes) {
-      // Each child is either a div with a text node or a br element.
-      if (firstChild.nodeType === Node.TEXT_NODE) {
-        const length = firstChild.nodeValue.length;
-        if (beforeLength <= length) {
-          newRange.setStart(firstChild, beforeLength);
-          newRange.setEnd(firstChild, beforeLength);
-          break;
-        }
-        beforeLength -= length;
-      }
-    }
-    selection.removeAllRanges();
-    selection.addRange(newRange);
-  }
-
   #setContent() {
-    this.editorDiv.replaceChildren();
-    if (!this.#content) {
-      return;
-    }
-    for (const line of this.#content.split("\n")) {
-      const div = document.createElement("div");
-      // 文本内容的div优先继承父元素的样式
-      div.style.fontSize = "inherit";
-      div.append(
-        line ? document.createTextNode(line) : document.createElement("br")
-      );
-      this.editorDiv.append(div);
-    }
+    this.editorDiv.value = this.#content;
+    this.#updateMeasureContent();
+    this.#syncDrawLayer();
   }
 
   #serializeContent() {
-    return this.#content.replaceAll("\xa0", " ");
+    return this.#content;
   }
 
   static #deserializeContent(content) {
-    return content.replaceAll(" ", "\xa0");
+    return content.replaceAll(EOL_PATTERN, "\n");
   }
 
   /** @inheritdoc */
@@ -1083,7 +1484,10 @@ class FreeTextEditor extends AnnotationEditor {
     editor.#fontSize = data.fontSize;
     editor.#color = Util.makeHexColor(...data.color);
     editor.#content = FreeTextEditor.#deserializeContent(data.value);
-    editor.opacity = data.opacity || FreeTextEditor._defaultOpacity;
+    editor.opacity = normalizeOpacity(
+      data.opacity ?? FreeTextEditor._defaultOpacity,
+      FreeTextEditor._defaultOpacity
+    );
     editor.annotationElementId = data.id || null;
     editor._initialData = initialData;
 
@@ -1092,6 +1496,7 @@ class FreeTextEditor extends AnnotationEditor {
 
   /** @inheritdoc */
   serialize(isForCopying = false) {
+    this.#flushPendingMeasurement();
     if (this.isEmpty()) {
       return null;
     }
@@ -1111,6 +1516,7 @@ class FreeTextEditor extends AnnotationEditor {
     const serialized = {
       annotationType: AnnotationEditorType.FREETEXT,
       color,
+      opacity: normalizeOpacity(this.opacity),
       fontSize: this.#fontSize,
       value: this.#serializeContent(),
       pageIndex: this.pageIndex,
@@ -1137,11 +1543,14 @@ class FreeTextEditor extends AnnotationEditor {
 
   #hasElementChanged(serialized) {
     const { value, fontSize, color, pageIndex } = this._initialData;
+    const initialOpacity = normalizeOpacity(this._initialData.opacity);
 
     return (
       this._hasBeenMoved ||
+      this._hasBeenResized ||
       serialized.value !== value ||
       serialized.fontSize !== fontSize ||
+      serialized.opacity !== initialOpacity ||
       serialized.color.some((c, i) => c !== color[i]) ||
       serialized.pageIndex !== pageIndex
     );

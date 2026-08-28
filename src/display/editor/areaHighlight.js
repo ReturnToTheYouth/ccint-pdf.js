@@ -1,5 +1,4 @@
 import {
-  addOpacityToColor,
   AnnotationEditorParamsType,
   AnnotationEditorType,
   assert,
@@ -21,6 +20,8 @@ class AreaHighlightEditor extends AnnotationEditor {
   #opacity;
 
   #colorPicker = null;
+
+  #drawId = null;
 
   static _internalPadding = 0;
 
@@ -125,6 +126,84 @@ class AreaHighlightEditor extends AnnotationEditor {
     return this.#color;
   }
 
+  static #rotateBbox([x, y, width, height], angle) {
+    switch (angle) {
+      case 90:
+        return [1 - y - height, x, height, width];
+      case 180:
+        return [1 - x - width, 1 - y - height, width, height];
+      case 270:
+        return [y, 1 - x - width, height, width];
+    }
+    return [x, y, width, height];
+  }
+
+  #getDrawBbox(bbox = [this.x, this.y, this.width, this.height]) {
+    return AreaHighlightEditor.#rotateBbox(bbox, this.pageRotation);
+  }
+
+  #addToDrawLayer(parent = this.parent, bbox) {
+    if (this.#drawId !== null || !parent) {
+      return;
+    }
+    bbox ||= [this.x, this.y, this.width, this.height];
+    if (
+      bbox.some(value => !Number.isFinite(value)) ||
+      bbox[2] <= 0 ||
+      bbox[3] <= 0
+    ) {
+      return;
+    }
+
+    ({ id: this.#drawId } = parent.drawLayer.draw({
+      bbox: this.#getDrawBbox(bbox),
+      root: {
+        viewBox: "0 0 1 1",
+        fill: this.#color,
+        "fill-opacity": this.#opacity,
+      },
+      rootClass: {
+        areaHighlight: true,
+      },
+      path: {
+        d: "M0 0 H1 V1 H0 Z",
+      },
+    }));
+  }
+
+  #syncDrawLayer(bbox = [this.x, this.y, this.width, this.height]) {
+    if (!this.parent) {
+      return;
+    }
+    if (
+      bbox.some(value => !Number.isFinite(value)) ||
+      bbox[2] <= 0 ||
+      bbox[3] <= 0
+    ) {
+      this.#cleanDrawLayer();
+      return;
+    }
+    this.#addToDrawLayer(this.parent, bbox);
+    if (this.#drawId === null) {
+      return;
+    }
+    this.parent.drawLayer.updateProperties(this.#drawId, {
+      bbox: this.#getDrawBbox(bbox),
+      root: {
+        fill: this.#color,
+        "fill-opacity": this.#opacity,
+      },
+    });
+  }
+
+  #cleanDrawLayer(parent = this.parent) {
+    if (this.#drawId === null) {
+      return;
+    }
+    parent?.drawLayer.remove(this.#drawId);
+    this.#drawId = null;
+  }
+
   /** @inheritdoc */
   updateParams(type, value) {
     switch (type) {
@@ -179,7 +258,7 @@ class AreaHighlightEditor extends AnnotationEditor {
   #updateColor(color) {
     const setColor = col => {
       this.#color = col;
-      this.div.style.backgroundColor = addOpacityToColor(col, this.#opacity);
+      this.#syncDrawLayer();
       this.#colorPicker?.updateColor(col);
     };
     const savedColor = this.#color;
@@ -188,7 +267,7 @@ class AreaHighlightEditor extends AnnotationEditor {
       undo: setColor.bind(this, savedColor),
       post: this._uiManager.updateUI.bind(this._uiManager, this),
       mustExec: true,
-      type: AnnotationEditorParamsType.AREA_HIGHLIGHT_COLOR,
+      type: `${AnnotationEditorParamsType.AREA_HIGHLIGHT_COLOR}:${this.id}`,
       overwriteIfSameType: true,
       keepUndo: true,
     });
@@ -205,7 +284,7 @@ class AreaHighlightEditor extends AnnotationEditor {
   #updateOpacity(opacity) {
     const setOpacity = opa => {
       this.#opacity = opa;
-      this.div.style.backgroundColor = addOpacityToColor(this.#color, opa);
+      this.#syncDrawLayer();
     };
     const savedOpacity = this.#opacity;
     this.addCommands({
@@ -213,7 +292,7 @@ class AreaHighlightEditor extends AnnotationEditor {
       undo: setOpacity.bind(this, savedOpacity),
       post: this._uiManager.updateUI.bind(this._uiManager, this),
       mustExec: true,
-      type: AnnotationEditorParamsType.AREA_HIGHLIGHT_OPACITY,
+      type: `${AnnotationEditorParamsType.AREA_HIGHLIGHT_OPACITY}:${this.id}`,
       overwriteIfSameType: true,
       keepUndo: true,
     });
@@ -260,34 +339,46 @@ class AreaHighlightEditor extends AnnotationEditor {
     const offsetX = coord.x + event.offsetX;
     const offsetY = coord.y + event.offsetY;
 
-    let width = offsetX - sourceX - this.sourceX;
-    let height = offsetY - sourceY - this.sourceY;
+    const rawWidth = offsetX - sourceX - this.sourceX;
+    const rawHeight = offsetY - sourceY - this.sourceY;
 
     // 记录真正左上角点位的相对方向
-    this.relativeX = width / this.parentDimensions[0];
-    this.relativeY = height / this.parentDimensions[1];
-
-    let left = this.sourceX;
-    let top = this.sourceY;
-    if (width < 0) {
-      // width是负数，所以为加号，让其沿着负方向偏移
-      left += width; // 向左拖动，left要跟着变
-      width = Math.abs(width);
-    }
-    if (height < 0) {
-      // height是负数，所以为加号，让其沿着负方向偏移
-      top += height; // 向上拖动，top要跟着变
-      height = Math.abs(height);
-    }
-
-    this.originWidth = width;
-    this.originHeight = height;
     const parentWidth = this.div.parentNode.clientWidth;
     const parentHeight = this.div.parentNode.clientHeight;
-    this.div.style.left = (left / parentWidth) * 100 + "%";
-    this.div.style.top = (top / parentHeight) * 100 + "%";
-    this.div.style.width = width + "px";
-    this.div.style.height = height + "px";
+    this.relativeX = rawWidth / parentWidth;
+    this.relativeY = rawHeight / parentHeight;
+
+    const left = Math.max(
+      0,
+      Math.min(parentWidth, Math.min(this.sourceX, this.sourceX + rawWidth))
+    );
+    const top = Math.max(
+      0,
+      Math.min(parentHeight, Math.min(this.sourceY, this.sourceY + rawHeight))
+    );
+    const right = Math.max(
+      0,
+      Math.min(parentWidth, Math.max(this.sourceX, this.sourceX + rawWidth))
+    );
+    const bottom = Math.max(
+      0,
+      Math.min(parentHeight, Math.max(this.sourceY, this.sourceY + rawHeight))
+    );
+    const width = Math.max(0, right - left);
+    const height = Math.max(0, bottom - top);
+
+    this.x = left / parentWidth;
+    this.y = top / parentHeight;
+    this.width = width / parentWidth;
+    this.height = height / parentHeight;
+    this.originWidth = width;
+    this.originHeight = height;
+
+    this.div.style.left = `${100 * this.x}%`;
+    this.div.style.top = `${100 * this.y}%`;
+    this.div.style.width = `${width}px`;
+    this.div.style.height = `${height}px`;
+    this.#syncDrawLayer();
   }
 
   /** @inheritdoc */
@@ -299,6 +390,7 @@ class AreaHighlightEditor extends AnnotationEditor {
     if (this.div === null) {
       return;
     }
+    this.#syncDrawLayer();
     this.rotate(this.pageRotation);
 
     if (!this.isAttachedToDOM) {
@@ -308,8 +400,46 @@ class AreaHighlightEditor extends AnnotationEditor {
     }
   }
 
+  /** @inheritdoc */
+  setParent(parent) {
+    let mustBeSelected = false;
+    const oldParent = this.parent;
+    if (oldParent && oldParent !== parent) {
+      this.#cleanDrawLayer(oldParent);
+    }
+    if (parent) {
+      mustBeSelected =
+        !oldParent && this.div?.classList.contains("selectedEditor");
+    }
+    super.setParent(parent);
+    if (!parent) {
+      return;
+    }
+    this.#syncDrawLayer();
+    this.show(this._isVisible);
+    if (mustBeSelected) {
+      this.select();
+    }
+  }
+
+  /** @inheritdoc */
+  show(visible = this._isVisible) {
+    super.show(visible);
+    this.parent?.drawLayer.updateProperties(this.#drawId, {
+      rootClass: {
+        hidden: !visible,
+      },
+    });
+  }
+
+  /** @inheritdoc */
+  rotate(_angle) {
+    this.#syncDrawLayer();
+  }
+
   postAttach() {
     this.adaptSize();
+    this.#syncDrawLayer();
   }
 
   adaptive() {
@@ -319,6 +449,11 @@ class AreaHighlightEditor extends AnnotationEditor {
   }
 
   postConfirm() {
+    if ([this.x, this.y, this.width, this.height].every(Number.isFinite)) {
+      this.adaptSize();
+      this.#syncDrawLayer();
+      return;
+    }
     const parentWidth = this.div.parentNode.clientWidth;
     const parentHeight = this.div.parentNode.clientHeight;
 
@@ -367,6 +502,7 @@ class AreaHighlightEditor extends AnnotationEditor {
     this.height = finalHeight / parentHeight;
 
     this.adaptSize();
+    this.#syncDrawLayer();
     // 添加了editor之后取消自动选中
     // this.parent.setSelected(this);
   }
@@ -445,6 +581,7 @@ class AreaHighlightEditor extends AnnotationEditor {
   /** @inheritdoc */
   remove() {
     this.isEditing = false;
+    this.#cleanDrawLayer();
     // if (this.parent) {
     //   this.parent.setEditingState(true);
     //   this.parent.div.classList.add("areaHighlightEditing");
@@ -492,16 +629,15 @@ class AreaHighlightEditor extends AnnotationEditor {
     this.div.style.width = "0px";
     this.div.style.height = "0px";
     this.div.style.position = "absolute";
-    this.div.style.backgroundColor = addOpacityToColor(
-      this.#color,
-      this.#opacity
-    );
+    this.div.style.backgroundColor = "transparent";
     this.div.style.border = "none";
     this.div.style.outline = "none";
 
     if (typeof PDFJSDev !== "undefined" && PDFJSDev.test("TESTING")) {
       this.div.setAttribute("annotation-id", this.annotationElementId);
     }
+
+    this.#syncDrawLayer();
 
     return this.div;
   }
@@ -539,6 +675,7 @@ class AreaHighlightEditor extends AnnotationEditor {
     editor.#opacity = data.opacity || AreaHighlightEditor._defaultOpacity;
     editor.annotationElementId = data.id || null;
     editor._initialData = initialData;
+    editor.#syncDrawLayer();
 
     return editor;
   }
@@ -558,11 +695,7 @@ class AreaHighlightEditor extends AnnotationEditor {
     }
 
     const rect = this.getRect(0, 0);
-    const color = AnnotationEditor._colorManager.convert(
-      this.isAttachedToDOM
-        ? getComputedStyle(this.div).backgroundColor
-        : this.color
-    );
+    const color = AnnotationEditor._colorManager.convert(this.#color);
 
     const serialized = {
       annotationType: AnnotationEditorType.AREAHIGHLIGHT,
@@ -588,10 +721,14 @@ class AreaHighlightEditor extends AnnotationEditor {
   }
 
   #hasElementChanged(serialized) {
+    if (!this._initialData) {
+      return true;
+    }
+    const { color, opacity } = this._initialData;
     return (
       this._hasBeenMoved ||
-      serialized.color !== this.#color ||
-      serialized.opacity !== this.#opacity
+      serialized.color.some((component, index) => component !== color[index]) ||
+      serialized.opacity !== opacity
     );
   }
 

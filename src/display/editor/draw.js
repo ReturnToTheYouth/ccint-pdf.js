@@ -859,6 +859,13 @@ class DrawingEditor extends AnnotationEditor {
     if (this.supportMultipleDrawings) {
       const draw = DrawingEditor.#currentDraw;
       const drawId = this._currentDrawId;
+      if (!draw.isLastElementValid()) {
+        parent.drawLayer.updateProperties(drawId, draw.removeLastElement());
+        if (draw.isEmpty()) {
+          parent.endDrawingSession(/* isAborted = */ true);
+        }
+        return;
+      }
       const lastElement = draw.getLastElement();
       parent.addCommands({
         cmd: () => {
@@ -887,6 +894,17 @@ class DrawingEditor extends AnnotationEditor {
     }
     parent.toggleDrawing(true);
     parent.cleanUndoStack(AnnotationEditorParamsType.DRAW_STEP);
+
+    if (
+      this.supportMultipleDrawings &&
+      !DrawingEditor.#currentDraw.isEmpty() &&
+      !DrawingEditor.#currentDraw.isLastElementValid()
+    ) {
+      parent.drawLayer.updateProperties(
+        this._currentDrawId,
+        DrawingEditor.#currentDraw.removeLastElement()
+      );
+    }
 
     if (!DrawingEditor.#currentDraw.isEmpty()) {
       const {

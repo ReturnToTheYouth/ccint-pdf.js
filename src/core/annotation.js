@@ -73,6 +73,12 @@ import { ObjectLoader } from "./object_loader.js";
 import { OperatorList } from "./operator_list.js";
 import { XFAFactory } from "./xfa/factory.js";
 
+function normalizeOpacity(opacity) {
+  return typeof opacity === "number" && Number.isFinite(opacity)
+    ? Math.min(1, Math.max(0, opacity))
+    : 1;
+}
+
 class AnnotationFactory {
   static createGlobals(pdfManager) {
     return Promise.all([
@@ -374,6 +380,7 @@ class AnnotationFactory {
               evaluator,
               task,
               baseFontRef,
+              changes,
             })
           );
           break;
@@ -3962,7 +3969,7 @@ class FreeTextAnnotation extends MarkupAnnotation {
     freetext.set("Rotate", rotation);
 
     // 设置透明度
-    freetext.set("CA", opacity);
+    freetext.set("CA", normalizeOpacity(opacity));
 
     if (user) {
       freetext.set("T", stringToAsciiOrUTF16BE(user));
@@ -3977,14 +3984,125 @@ class FreeTextAnnotation extends MarkupAnnotation {
       } else {
         n.set("N", ap);
       }
+    } else {
+      // Never keep an appearance representing the previous contents when
+      // creating its replacement failed.
+      freetext.delete("AP");
     }
 
     return freetext;
   }
 
+  static async #createRasterAppearanceStream(annotation, xref, params) {
+    const { changes, evaluator } = params;
+    if (
+      !changes ||
+      !evaluator?.options?.isOffscreenCanvasSupported ||
+      typeof OffscreenCanvas === "undefined"
+    ) {
+      return null;
+    }
+
+    try {
+      const { color, fontSize, opacity, rect, rotation, value } = annotation;
+      let logicalWidth = rect[2] - rect[0];
+      let logicalHeight = rect[3] - rect[1];
+      if (rotation % 180 !== 0) {
+        [logicalWidth, logicalHeight] = [logicalHeight, logicalWidth];
+      }
+      if (!(logicalWidth > 0 && logicalHeight > 0)) {
+        return null;
+      }
+
+      const maxPixels = 4 * 1024 * 1024;
+      const qualityScale = Math.min(
+        2,
+        Math.sqrt(maxPixels / (logicalWidth * logicalHeight))
+      );
+      const canvasWidth = Math.max(1, Math.ceil(logicalWidth * qualityScale));
+      const canvasHeight = Math.max(1, Math.ceil(logicalHeight * qualityScale));
+      const canvas = new OffscreenCanvas(canvasWidth, canvasHeight);
+      const ctx = canvas.getContext("2d", { alpha: true });
+      if (!ctx) {
+        return null;
+      }
+
+      const lines = value.split("\n");
+      ctx.font = `${fontSize * qualityScale}px sans-serif`;
+      let maxLineWidth = 0;
+      for (const line of lines) {
+        maxLineWidth = Math.max(
+          maxLineWidth,
+          ctx.measureText(line).width / qualityScale
+        );
+      }
+      const totalHeight = LINE_FACTOR * fontSize * lines.length;
+      const widthScale =
+        maxLineWidth > logicalWidth ? logicalWidth / maxLineWidth : 1;
+      const heightScale =
+        totalHeight > logicalHeight ? logicalHeight / totalHeight : 1;
+      const fittedFontSize = fontSize * Math.min(widthScale, heightScale);
+      const pixelFontSize = fittedFontSize * qualityScale;
+      const lineHeight = LINE_FACTOR * pixelFontSize;
+      const lineAscent = (LINE_FACTOR - LINE_DESCENT_FACTOR) * pixelFontSize;
+
+      ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+      ctx.globalAlpha = normalizeOpacity(opacity);
+      ctx.fillStyle = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
+      ctx.font = `${pixelFontSize}px sans-serif`;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "alphabetic";
+      for (let i = 0, ii = lines.length; i < ii; i++) {
+        ctx.fillText(lines[i], 0, lineAscent + i * lineHeight);
+      }
+
+      const { imageStream, smaskStream } = await StampAnnotation.createImage(
+        canvas,
+        xref
+      );
+      if (smaskStream) {
+        const smaskRef = xref.getNewTemporaryRef();
+        changes.put(smaskRef, { data: smaskStream });
+        imageStream.dict.set("SMask", smaskRef);
+      }
+      const imageRef = xref.getNewTemporaryRef();
+      changes.put(imageRef, { data: imageStream });
+
+      const xobject = new Dict(xref);
+      xobject.set("Im0", imageRef);
+      const resources = new Dict(xref);
+      resources.set("XObject", xobject);
+      const appearance =
+        `q ${numberToString(logicalWidth)} 0 0 ` +
+        `${numberToString(logicalHeight)} 0 0 cm /Im0 Do Q`;
+      const appearanceStreamDict = new Dict(xref);
+      appearanceStreamDict.set("FormType", 1);
+      appearanceStreamDict.set("Subtype", Name.get("Form"));
+      appearanceStreamDict.set("Type", Name.get("XObject"));
+      appearanceStreamDict.set("BBox", [0, 0, logicalWidth, logicalHeight]);
+      appearanceStreamDict.set("Resources", resources);
+      if (rotation) {
+        appearanceStreamDict.set(
+          "Matrix",
+          getRotationMatrix(rotation, logicalWidth, logicalHeight)
+        );
+      }
+
+      const ap = new StringStream(appearance);
+      ap.dict = appearanceStreamDict;
+      return ap;
+    } catch (reason) {
+      warn(
+        `FreeTextAnnotation: Unable to create a raster appearance: ${reason}`
+      );
+      return null;
+    }
+  }
+
   static async createNewAppearanceStream(annotation, xref, params) {
     const { baseFontRef, evaluator, task } = params;
-    const { color, fontSize, rect, rotation, value } = annotation;
+    const { color, fontSize, opacity, rect, rotation, value } = annotation;
+    const normalizedOpacity = normalizeOpacity(opacity);
 
     const resources = new Dict(xref);
     const font = new Dict(xref);
@@ -4027,7 +4145,7 @@ class FreeTextAnnotation extends MarkupAnnotation {
       const encoded = helv.encodeString(line);
       if (encoded.length > 1) {
         // The font doesn't contain all the chars.
-        return null;
+        return this.#createRasterAppearanceStream(annotation, xref, params);
       }
       line = encoded.join("");
       encodedLines.push(line);
@@ -4052,6 +4170,16 @@ class FreeTextAnnotation extends MarkupAnnotation {
     }
     const fscale = Math.min(hscale, vscale);
     const newFontSize = fontSize * fscale;
+
+    if (normalizedOpacity < 1) {
+      const graphicsState = new Dict(xref);
+      graphicsState.set("ca", normalizedOpacity);
+      graphicsState.set("CA", normalizedOpacity);
+      const extGState = new Dict(xref);
+      extGState.set("R0", graphicsState);
+      resources.set("ExtGState", extGState);
+    }
+
     let firstPoint, clipBox, matrix;
     switch (rotation) {
       case 0:
@@ -4078,6 +4206,7 @@ class FreeTextAnnotation extends MarkupAnnotation {
 
     const buffer = [
       "q",
+      ...(normalizedOpacity < 1 ? ["/R0 gs"] : []),
       `${matrix.join(" ")} 0 0 cm`,
       `${clipBox.join(" ")} re W n`,
       `BT`,

@@ -24,6 +24,8 @@ import { AnnotationEditorParamsType } from "pdfjs-lib";
  * @property {HTMLInputElement} editorInkColor
  * @property {HTMLInputElement} editorInkThickness
  * @property {HTMLInputElement} editorInkOpacity
+ * @property {HTMLInputElement} editorAreaHighlightColor
+ * @property {HTMLInputElement} editorAreaHighlightOpacity
  * @property {HTMLButtonElement} editorStampAddImage
  * @property {HTMLInputElement} editorFreeHighlightThickness
  * @property {HTMLButtonElement} editorHighlightShowAll
@@ -49,6 +51,8 @@ class AnnotationEditorParams {
     editorInkColor,
     editorInkThickness,
     editorInkOpacity,
+    editorAreaHighlightColor,
+    editorAreaHighlightOpacity,
     editorStampAddImage,
     editorFreeHighlightThickness,
     editorHighlightShowAll,
@@ -56,11 +60,19 @@ class AnnotationEditorParams {
   }) {
     const { eventBus } = this;
 
-    const dispatchEvent = (typeStr, value) => {
+    const dispatchEvent = (typeStr, value, options = {}) => {
       eventBus.dispatch("switchannotationeditorparams", {
         source: this,
         type: AnnotationEditorParamsType[typeStr],
         value,
+        ...options,
+      });
+    };
+    const dispatchAreaHighlightEvent = (typeStr, value) => {
+      dispatchEvent(typeStr, value);
+      dispatchEvent(typeStr, value, {
+        fromGlobal: false,
+        singleEditorOnly: true,
       });
     };
     editorFreeTextFontSize.addEventListener("input", function () {
@@ -77,6 +89,12 @@ class AnnotationEditorParams {
     });
     editorInkOpacity.addEventListener("input", function () {
       dispatchEvent("INK_OPACITY", this.valueAsNumber);
+    });
+    editorAreaHighlightColor.addEventListener("input", function () {
+      dispatchAreaHighlightEvent("AREA_HIGHLIGHT_COLOR", this.value);
+    });
+    editorAreaHighlightOpacity.addEventListener("input", function () {
+      dispatchAreaHighlightEvent("AREA_HIGHLIGHT_OPACITY", this.valueAsNumber);
     });
     editorStampAddImage.addEventListener("click", () => {
       eventBus.dispatch("reporttelemetry", {
@@ -117,6 +135,12 @@ class AnnotationEditorParams {
             break;
           case AnnotationEditorParamsType.INK_OPACITY:
             editorInkOpacity.value = value;
+            break;
+          case AnnotationEditorParamsType.AREA_HIGHLIGHT_COLOR:
+            editorAreaHighlightColor.value = value;
+            break;
+          case AnnotationEditorParamsType.AREA_HIGHLIGHT_OPACITY:
+            editorAreaHighlightOpacity.value = value;
             break;
           case AnnotationEditorParamsType.HIGHLIGHT_DEFAULT_COLOR:
             eventBus.dispatch("mainhighlightcolorpickerupdatecolor", {

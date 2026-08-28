@@ -75,6 +75,10 @@ class InkDrawOutliner {
     return !this.#lines || this.#lines.length === 0;
   }
 
+  isLastElementValid() {
+    return (this.#lines?.at(-1)?.points.length ?? 0) >= 4;
+  }
+
   isCancellable() {
     // The user a second finger after drawing 5 points: it's small enough
     // to not be a real drawing.

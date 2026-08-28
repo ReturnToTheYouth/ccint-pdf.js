@@ -306,7 +306,7 @@ class CommandManager {
    * @property {function} undo
    * @property {function} [post]
    * @property {boolean} mustExec
-   * @property {number} type
+   * @property {number|string} type
    * @property {boolean} overwriteIfSameType
    * @property {boolean} keepUndo
    */
@@ -898,7 +898,13 @@ class AnnotationEditorUIManager {
     eventBus._on("setpreference", this.onSetPreference.bind(this), { signal });
     eventBus._on(
       "switchannotationeditorparams",
-      evt => this.updateParams(evt.type, evt.value, evt.fromGlobal),
+      evt =>
+        this.updateParams(
+          evt.type,
+          evt.value,
+          evt.fromGlobal,
+          evt.singleEditorOnly
+        ),
       { signal }
     );
     this.#addSelectionListener();
@@ -2023,8 +2029,10 @@ class AnnotationEditorUIManager {
    * Update a parameter in the current editor or globally.
    * @param {number} type
    * @param {*} value
+   * @param {boolean} [fromGlobal=true]
+   * @param {boolean} [singleEditorOnly=false]
    */
-  updateParams(type, value, fromGlobal = true) {
+  updateParams(type, value, fromGlobal = true, singleEditorOnly = false) {
     if (!this.#editorTypes) {
       return;
     }
@@ -2061,6 +2069,9 @@ class AnnotationEditorUIManager {
     } else {
       // 单个面板只能修改单个的选中
       // 修改 激活的、已选中的 editor的批注参数属性
+      if (singleEditorOnly && this.#selectedEditors.size !== 1) {
+        return;
+      }
       for (const editor of this.#selectedEditors) {
         editor.updateParams(type, value);
       }

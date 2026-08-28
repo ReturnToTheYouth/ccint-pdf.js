@@ -812,18 +812,20 @@ class AnnotationEditor {
     // When the resizers are used with the keyboard, they're focusable, hence
     // we want to have them in this order (top left, top middle, top right, ...)
     // in the DOM to have the focus order correct.
-    const classes = this._willKeepAspectRatio
-      ? ["topLeft", "topRight", "bottomRight", "bottomLeft"]
-      : [
-          "topLeft",
-          "topMiddle",
-          "topRight",
-          "middleRight",
-          "bottomRight",
-          "bottomMiddle",
-          "bottomLeft",
-          "middleLeft",
-        ];
+    const classes =
+      this.resizerNames ||
+      (this._willKeepAspectRatio
+        ? ["topLeft", "topRight", "bottomRight", "bottomLeft"]
+        : [
+            "topLeft",
+            "topMiddle",
+            "topRight",
+            "middleRight",
+            "bottomRight",
+            "bottomMiddle",
+            "bottomLeft",
+            "middleLeft",
+          ]);
     const signal = this._uiManager._signal;
     for (const name of classes) {
       const div = document.createElement("div");
@@ -874,7 +876,9 @@ class AnnotationEditor {
       savedY: this.y,
       savedWidth: this.width,
       savedHeight: this.height,
+      savedExtra: this._getResizeState(),
     };
+    this._onStartResizing();
     const savedParentCursor = this.parent.div.style.cursor;
     const savedCursor = this.div.style.cursor;
     this.div.style.cursor = this.parent.div.style.cursor =
@@ -891,6 +895,7 @@ class AnnotationEditor {
       this.parent.div.style.cursor = savedParentCursor;
       this.div.style.cursor = savedCursor;
 
+      this._onStopResizing();
       this.#addResizeToUndoStack();
     };
     window.addEventListener("pointerup", pointerUpCallback, { signal });
@@ -899,11 +904,12 @@ class AnnotationEditor {
     window.addEventListener("blur", pointerUpCallback, { signal });
   }
 
-  #resize(x, y, width, height) {
+  #resize(x, y, width, height, extra) {
     this.width = width;
     this.height = height;
     this.x = x;
     this.y = y;
+    this._setResizeState(extra);
     const [parentWidth, parentHeight] = this.parentDimensions;
     this.setDims(parentWidth * width, parentHeight * height);
     this.fixAndSetPosition();
@@ -919,13 +925,15 @@ class AnnotationEditor {
     if (!this.#savedDimensions) {
       return;
     }
-    const { savedX, savedY, savedWidth, savedHeight } = this.#savedDimensions;
+    const { savedX, savedY, savedWidth, savedHeight, savedExtra } =
+      this.#savedDimensions;
     this.#savedDimensions = null;
 
     const newX = this.x;
     const newY = this.y;
     const newWidth = this.width;
     const newHeight = this.height;
+    const newExtra = this._getResizeState();
     if (
       newX === savedX &&
       newY === savedY &&
@@ -936,8 +944,23 @@ class AnnotationEditor {
     }
 
     this.addCommands({
-      cmd: this.#resize.bind(this, newX, newY, newWidth, newHeight),
-      undo: this.#resize.bind(this, savedX, savedY, savedWidth, savedHeight),
+      cmd: this.#resize.bind(
+        this,
+        newX,
+        newY,
+        newWidth,
+        newHeight,
+        newExtra
+      ),
+      undo: this.#resize.bind(
+        this,
+        savedX,
+        savedY,
+        savedWidth,
+        savedHeight,
+        savedExtra
+      ),
+      post: this._uiManager.updateUI.bind(this._uiManager, this),
       mustExec: true,
     });
   }
@@ -1058,8 +1081,13 @@ class AnnotationEditor {
         minHeight / savedHeight
       );
     } else if (isHorizontal) {
+      const maxWidth = Math.max(minWidth, this._maxResizeWidth);
       ratioX =
-        MathClamp(Math.abs(oppositePoint[0] - point[0] - deltaX), minWidth, 1) /
+        MathClamp(
+          Math.abs(oppositePoint[0] - point[0] - deltaX),
+          minWidth,
+          maxWidth
+        ) /
         savedWidth;
     } else {
       ratioY =
@@ -1070,8 +1098,9 @@ class AnnotationEditor {
         ) / savedHeight;
     }
 
-    const newWidth = AnnotationEditor._round(savedWidth * ratioX);
-    const newHeight = AnnotationEditor._round(savedHeight * ratioY);
+    let newWidth = AnnotationEditor._round(savedWidth * ratioX);
+    let newHeight = AnnotationEditor._round(savedHeight * ratioY);
+    [newWidth, newHeight] = this._constrainResize(name, newWidth, newHeight);
     transfOppositePoint = transf(...getOpposite(newWidth, newHeight));
     const newX = oppositeX - transfOppositePoint[0];
     const newY = oppositeY - transfOppositePoint[1];
@@ -1092,6 +1121,27 @@ class AnnotationEditor {
    * Called when the editor is being resized.
    */
   _onResizing() {}
+
+  /**
+   * Constrain the dimensions computed during a resize operation.
+   * @param {string|null} _name
+   * @param {number} width
+   * @param {number} height
+   * @returns {Array<number>}
+   */
+  _constrainResize(_name, width, height) {
+    return [width, height];
+  }
+
+  _onStartResizing() {}
+
+  _onStopResizing() {}
+
+  _getResizeState() {
+    return null;
+  }
+
+  _setResizeState(_state) {}
 
   /**
    * Called when the alt text dialog is closed.
@@ -1256,7 +1306,9 @@ class AnnotationEditor {
       savedY: this.y,
       savedWidth: this.width,
       savedHeight: this.height,
+      savedExtra: this._getResizeState(),
     };
+    this._onStartResizing();
     this.#altText?.toggle(false);
     this.parent.togglePointerEvents(false);
   }
@@ -1291,8 +1343,9 @@ class AnnotationEditor {
       minWidth / savedWidth,
       minHeight / savedHeight
     );
-    const newWidth = AnnotationEditor._round(savedWidth * factor);
-    const newHeight = AnnotationEditor._round(savedHeight * factor);
+    let newWidth = AnnotationEditor._round(savedWidth * factor);
+    let newHeight = AnnotationEditor._round(savedHeight * factor);
+    [newWidth, newHeight] = this._constrainResize(null, newWidth, newHeight);
     if (newWidth === savedWidth && newHeight === savedHeight) {
       return;
     }
@@ -1317,6 +1370,7 @@ class AnnotationEditor {
   #touchPinchEndCallback() {
     this.#altText?.toggle(true);
     this.parent.togglePointerEvents(true);
+    this._onStopResizing();
     this.#addResizeToUndoStack();
   }
 
@@ -1757,6 +1811,14 @@ class AnnotationEditor {
     return false;
   }
 
+  get resizerNames() {
+    return null;
+  }
+
+  get _maxResizeWidth() {
+    return 1;
+  }
+
   /**
    * Add the resizers to this editor.
    */
@@ -1789,7 +1851,9 @@ class AnnotationEditor {
       savedY: this.y,
       savedWidth: this.width,
       savedHeight: this.height,
+      savedExtra: this._getResizeState(),
     };
+    this._onStartResizing();
     const children = this.#resizersDiv.children;
     if (!this.#allResizerDivs) {
       this.#allResizerDivs = Array.from(children);
@@ -1818,9 +1882,11 @@ class AnnotationEditor {
       }
       firstPosition++;
     }
-    const nextFirstPosition =
-      (((360 - this.rotation + this.parentRotation) % 360) / 90) *
-      (this.#allResizerDivs.length / 4);
+    const canReorderResizers = this.#allResizerDivs.length % 4 === 0;
+    const nextFirstPosition = canReorderResizers
+      ? (((360 - this.rotation + this.parentRotation) % 360) / 90) *
+        (this.#allResizerDivs.length / 4)
+      : firstPosition;
 
     if (nextFirstPosition !== firstPosition) {
       // We need to reorder the resizers in the DOM in order to have the focus
@@ -1890,6 +1956,9 @@ class AnnotationEditor {
   #stopResizing() {
     this.#isResizerEnabledForKeyboard = false;
     this.#setResizerTabIndex(-1);
+    if (this.#savedDimensions) {
+      this._onStopResizing();
+    }
     this.#addResizeToUndoStack();
   }
 

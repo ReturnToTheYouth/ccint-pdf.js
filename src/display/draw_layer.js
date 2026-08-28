@@ -26,6 +26,8 @@ class DrawLayer {
 
   #mapping = new Map();
 
+  #textMapping = new Map();
+
   #toUpdate = new Map();
 
   static #id = 0;
@@ -137,6 +139,116 @@ class DrawLayer {
     this.#mapping.set(id, root);
 
     return { id, clipPathId: `url(#${clipPathId})` };
+  }
+
+  /**
+   * Draw some text in the canvas wrapper. The SVG is only a screen
+   * representation: the editor remains the source of truth for the text.
+   *
+   * @param {Object} properties
+   * @returns {number}
+   */
+  drawText(properties) {
+    const id = DrawLayer.#id++;
+    const root = this.#createSVG();
+    root.classList.add("freeText");
+    root.removeAttribute("viewBox");
+
+    const foreignObject = DrawLayer._svgFactory.createElement("foreignObject");
+    foreignObject.setAttribute("width", "100%");
+    foreignObject.setAttribute("height", "100%");
+    root.append(foreignObject);
+
+    const content = document.createElementNS(
+      "http://www.w3.org/1999/xhtml",
+      "div"
+    );
+    content.classList.add("freeTextContent");
+    foreignObject.append(content);
+
+    this.#mapping.set(id, root);
+    this.#textMapping.set(id, { foreignObject, content });
+    this.updateText(id, properties);
+    return id;
+  }
+
+  /**
+   * Update a text SVG created by {@link drawText}.
+   *
+   * @param {number} id
+   * @param {Object} properties
+   */
+  updateText(
+    id,
+    { bbox, value, style, contentRotation, contentSize, hidden } = {}
+  ) {
+    const root = this.#mapping.get(id);
+    const textData = this.#textMapping.get(id);
+    if (!root || !textData) {
+      return;
+    }
+
+    if (bbox) {
+      DrawLayer.#setBoxCopy(root, bbox);
+    }
+    if (value !== undefined) {
+      textData.content.textContent = value;
+    }
+    if (style) {
+      DrawLayer.#setTextStyle(textData.content, style);
+    }
+    if (contentRotation !== undefined) {
+      const rotation = [0, 90, 180, 270].includes(contentRotation)
+        ? contentRotation
+        : 0;
+      root.dataset.contentRotation = rotation;
+    }
+    if (contentSize) {
+      const { width, height } = contentSize;
+      if (Number.isFinite(width) && width > 0) {
+        textData.content.style.width = `${width}%`;
+      }
+      if (Number.isFinite(height) && height > 0) {
+        textData.content.style.height = `${height}%`;
+      }
+    }
+    if (hidden !== undefined) {
+      root.classList.toggle("hidden", hidden);
+    }
+  }
+
+  static #setTextStyle(content, style) {
+    const {
+      fontSize,
+      color,
+      fontWeight,
+      fontStyle,
+      textDecoration,
+      textAlign,
+    } = style;
+    const lineHeight = Number(style.lineHeight);
+
+    if (Number.isFinite(fontSize) && fontSize > 0) {
+      content.style.fontSize = `calc(${fontSize}px * var(--total-scale-factor))`;
+    }
+    if (typeof color === "string") {
+      content.style.color = color;
+    }
+    if (["normal", "bold"].includes(fontWeight)) {
+      content.style.fontWeight = fontWeight;
+    }
+    if (["normal", "italic"].includes(fontStyle)) {
+      content.style.fontStyle = fontStyle;
+    }
+    if (["none", "underline", "line-through"].includes(textDecoration)) {
+      content.style.textDecoration = textDecoration;
+    }
+    if (["left", "center", "right"].includes(textAlign)) {
+      content.style.textAlign = textAlign;
+    }
+    if (Number.isFinite(lineHeight) && lineHeight > 0) {
+      content.style.lineHeight = lineHeight;
+    }
   }
 
   drawOutline(properties, mustRemoveSelfIntersections) {
@@ -473,6 +585,11 @@ class DrawLayer {
     layer.#parent.append(root);
     this.#mapping.delete(id);
     layer.#mapping.set(id, root);
+    const textData = this.#textMapping.get(id);
+    if (textData) {
+      this.#textMapping.delete(id);
+      layer.#textMapping.set(id, textData);
+    }
   }
 
   addClass(id, className) {
@@ -485,10 +602,8 @@ class DrawLayer {
 
   remove(id) {
     this.#toUpdate.delete(id);
-    if (this.#parent === null) {
-      return;
-    }
-    this.#mapping.get(id).remove();
+    this.#textMapping.delete(id);
+    this.#mapping.get(id)?.remove();
     this.#mapping.delete(id);
   }
 
@@ -498,6 +613,7 @@ class DrawLayer {
       root.remove();
     }
     this.#mapping.clear();
+    this.#textMapping.clear();
     this.#toUpdate.clear();
   }
 }
