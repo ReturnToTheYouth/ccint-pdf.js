@@ -911,10 +911,7 @@ class AnnotationEditorLayer {
     }
     this.#hadPointerDown = false;
 
-    if (
-      this.#currentEditorType?.isDrawer &&
-      this.#currentEditorType.supportMultipleDrawings
-    ) {
+    if (this.#currentEditorType?.isDrawer) {
       return;
     }
 
@@ -1042,16 +1039,20 @@ class AnnotationEditorLayer {
       { signal }
     );
     // 如果ink发生了切换颜色、或者切换粗细，也自动分割为一个组
-    this.#uiManager._eventBus.on("inkgroupchange", ({ type }) => {
-      switch (type) {
-        case AnnotationEditorParamsType.INK_COLOR:
-        case AnnotationEditorParamsType.INK_THICKNESS:
-        case AnnotationEditorParamsType.INK_OPACITY:
-          this.#focusedElement = null;
-          this.commitOrRemove();
-          break;
-      }
-    });
+    this.#uiManager._eventBus.on(
+      "inkgroupchange",
+      ({ type }) => {
+        switch (type) {
+          case AnnotationEditorParamsType.INK_COLOR:
+          case AnnotationEditorParamsType.INK_THICKNESS:
+          case AnnotationEditorParamsType.INK_OPACITY:
+            this.#focusedElement = null;
+            this.commitOrRemove();
+            break;
+        }
+      },
+      { signal }
+    );
 
     this.#currentEditorType.startDrawing(this, this.#uiManager, false, event);
   }

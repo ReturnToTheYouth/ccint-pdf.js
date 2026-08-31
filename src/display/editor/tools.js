@@ -646,7 +646,13 @@ class AnnotationEditorUIManager {
 
   #deletedAnnotationsElementIds = new Set();
 
+  #dragAutoScrollRaf = null;
+
+  #dragPointerY = null;
+
   #draggingEditors = null;
+
+  #draggingPage = null;
 
   #editorTypes = null;
 
@@ -675,6 +681,8 @@ class AnnotationEditorUIManager {
   #idManager = new IdManager();
 
   #isEnabled = false;
+
+  #isPageConstrainedDragging = false;
 
   #isWaiting = false;
 
@@ -941,6 +949,12 @@ class AnnotationEditorUIManager {
   destroy() {
     this.#updateModeCapability?.resolve();
     this.#updateModeCapability = null;
+
+    this.#stopDragAutoScroll();
+    this.disableUserSelect(false);
+    this.#draggingEditors = null;
+    this.#draggingPage = null;
+    this.#isPageConstrainedDragging = false;
 
     this.#abortController?.abort();
     this.#abortController = null;
@@ -2607,7 +2621,7 @@ class AnnotationEditorUIManager {
   /**
    * Set up the drag session for moving the selected editors.
    */
-  setUpDragSession() {
+  setUpDragSession(sourceEditor) {
     // Note: don't use any references to the editor's parent which can be null
     // if the editor belongs to a destroyed page.
     if (!this.hasSelection) {
@@ -2616,6 +2630,20 @@ class AnnotationEditorUIManager {
     // Avoid to have spurious text selection in the text layer when dragging.
     this.disableUserSelect(true);
     this.#draggingEditors = new Map();
+    const { pageIndex } = sourceEditor;
+    this.#isPageConstrainedDragging =
+      this.#selectedEditors.has(sourceEditor) &&
+      sourceEditor._supportsPageConstrainedDragging &&
+      [...this.#selectedEditors].every(
+        editor =>
+          editor._supportsPageConstrainedDragging &&
+          editor.pageIndex === pageIndex &&
+          editor.parent
+      );
+    this.#draggingPage = this.#isPageConstrainedDragging
+      ? sourceEditor.parent
+      : null;
+    this.#dragPointerY = null;
     for (const editor of this.#selectedEditors) {
       this.#draggingEditors.set(editor, {
         savedX: editor.x,
@@ -2634,11 +2662,21 @@ class AnnotationEditorUIManager {
    */
   endDragSession() {
     if (!this.#draggingEditors) {
+      this.#stopDragAutoScroll();
       return false;
+    }
+    this.#stopDragAutoScroll();
+    if (this.#isPageConstrainedDragging) {
+      for (const editor of this.#draggingEditors.keys()) {
+        editor.fixAndSetPosition();
+        editor.translationDone();
+      }
     }
     this.disableUserSelect(false);
     const map = this.#draggingEditors;
     this.#draggingEditors = null;
+    this.#draggingPage = null;
+    this.#isPageConstrainedDragging = false;
     let mustBeAddedInUndoStack = false;
 
     for (const [{ x, y, pageIndex }, value] of map) {
@@ -2693,13 +2731,100 @@ class AnnotationEditorUIManager {
    * @param {number} tx
    * @param {number} ty
    */
-  dragSelectedEditors(tx, ty) {
+  dragSelectedEditors(tx, ty, clientY) {
     if (!this.#draggingEditors) {
       return;
     }
-    for (const editor of this.#draggingEditors.keys()) {
-      editor.drag(tx, ty);
+    if (this.#isPageConstrainedDragging) {
+      this.#dragPointerY = clientY;
+      this.#requestDragAutoScroll();
     }
+    for (const editor of this.#draggingEditors.keys()) {
+      editor.drag(tx, ty, this.#isPageConstrainedDragging);
+    }
+  }
+
+  #requestDragAutoScroll() {
+    if (
+      this.#dragAutoScrollRaf !== null ||
+      !this.#isPageConstrainedDragging ||
+      !Number.isFinite(this.#dragPointerY)
+    ) {
+      return;
+    }
+    this.#dragAutoScrollRaf = requestAnimationFrame(() => {
+      this.#dragAutoScrollRaf = null;
+      this.#autoScrollWhileDragging();
+    });
+  }
+
+  #autoScrollWhileDragging() {
+    const pageDiv = this.#draggingPage?.div;
+    if (
+      !this.#draggingEditors ||
+      !this.#isPageConstrainedDragging ||
+      !pageDiv
+    ) {
+      return;
+    }
+
+    const EDGE_SIZE = 48;
+    const MAX_SCROLL_PER_FRAME = 18;
+    const containerRect = this.#container.getBoundingClientRect();
+    const viewportTop = containerRect.top + this.#container.clientTop;
+    const viewportBottom = viewportTop + this.#container.clientHeight;
+    const pageRect = pageDiv.getBoundingClientRect();
+    if (pageRect.height <= this.#container.clientHeight + 1) {
+      return;
+    }
+    const pointerY = this.#dragPointerY;
+    let scrollBy = 0;
+
+    if (pointerY < viewportTop + EDGE_SIZE) {
+      const ratio = Math.min(
+        1,
+        (viewportTop + EDGE_SIZE - pointerY) / EDGE_SIZE
+      );
+      scrollBy = -Math.max(1, Math.round(MAX_SCROLL_PER_FRAME * ratio));
+    } else if (pointerY > viewportBottom - EDGE_SIZE) {
+      const ratio = Math.min(
+        1,
+        (pointerY - viewportBottom + EDGE_SIZE) / EDGE_SIZE
+      );
+      scrollBy = Math.max(1, Math.round(MAX_SCROLL_PER_FRAME * ratio));
+    }
+
+    if (scrollBy === 0) {
+      return;
+    }
+
+    const remainingUp = Math.max(0, viewportTop - pageRect.top);
+    const remainingDown = Math.max(0, pageRect.bottom - viewportBottom);
+    scrollBy = Math.max(-remainingUp, Math.min(remainingDown, scrollBy));
+    if (scrollBy === 0) {
+      return;
+    }
+
+    const scrollTopBefore = this.#container.scrollTop;
+    this.#container.scrollTop += scrollBy;
+    const actualDy = this.#container.scrollTop - scrollTopBefore;
+    if (actualDy === 0) {
+      return;
+    }
+
+    for (const editor of this.#draggingEditors.keys()) {
+      const [tx, ty] = editor.screenToPageTranslation(0, actualDy);
+      editor.drag(tx, ty, /* isPageConstrained = */ true);
+    }
+    this.#requestDragAutoScroll();
+  }
+
+  #stopDragAutoScroll() {
+    if (this.#dragAutoScrollRaf !== null) {
+      cancelAnimationFrame(this.#dragAutoScrollRaf);
+      this.#dragAutoScrollRaf = null;
+    }
+    this.#dragPointerY = null;
   }
 
   /**

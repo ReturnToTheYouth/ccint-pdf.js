@@ -193,6 +193,10 @@ class FreeTextEditor extends AnnotationEditor {
     };
   }
 
+  get _supportsPageConstrainedDragging() {
+    return true;
+  }
+
   /** @inheritdoc */
   static initialize(l10n, uiManager) {
     AnnotationEditor.initialize(l10n, uiManager);

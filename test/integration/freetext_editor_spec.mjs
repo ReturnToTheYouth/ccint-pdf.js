@@ -21,6 +21,7 @@ import {
   copyToClipboard,
   createPromise,
   dragAndDrop,
+  dragToVerticalEdge,
   firstPageOnTop,
   getEditors,
   getEditorSelector,
@@ -68,6 +69,15 @@ const commit = async page => {
 };
 
 const switchToFreeText = switchToEditor.bind(null, "FreeText");
+
+const zoomForVerticalAutoScroll = async page => {
+  const handle = await waitForAnnotationEditorLayer(page);
+  await page.evaluate(() => {
+    window.PDFViewerApplication.pdfViewer.currentScaleValue = 2;
+  });
+  await awaitPromise(handle);
+  await firstPageOnTop(page);
+};
 
 const cancelFocusIn = async (page, selector) => {
   page.evaluate(sel => {
@@ -844,6 +854,54 @@ describe("FreeText Editor", () => {
 
           await dragAndDrop(page, editorSelector, [[100, 100]]);
           await waitForSerialized(page, 1);
+        })
+      );
+    });
+  });
+
+  describe("FreeText (auto-scroll within the current page)", () => {
+    let pages;
+
+    beforeEach(async () => {
+      pages = await loadAndWait("empty.pdf", ".annotationEditorLayer");
+    });
+
+    afterEach(async () => {
+      await closePages(pages);
+    });
+
+    it("must scroll vertically without changing the text pageIndex", async () => {
+      await Promise.all(
+        pages.map(async ([browserName, page]) => {
+          await switchToFreeText(page);
+          await zoomForVerticalAutoScroll(page);
+          const rect = await getRect(page, ".annotationEditorLayer");
+          const editorSelector = getEditorSelector(0);
+          await page.mouse.click(rect.x + 100, rect.y + 100);
+          await page.waitForSelector(editorSelector, { visible: true });
+          await page.type(`${editorSelector} .internal`, "Auto-scroll");
+          await commit(page);
+
+          for (const direction of ["down", "up"]) {
+            const result = await dragToVerticalEdge(
+              page,
+              editorSelector,
+              direction
+            );
+            expect(
+              direction === "down"
+                ? result.scrollTop > result.startScrollTop
+                : result.scrollTop < result.startScrollTop
+            )
+              .withContext(`In ${browserName}, ${direction}`)
+              .toBeTrue();
+            expect(Math.abs(result.editorCenterY - result.pointerY))
+              .withContext(`In ${browserName}, ${direction}`)
+              .toBeLessThan(35);
+          }
+          expect(await getSerialized(page, ({ pageIndex }) => pageIndex))
+            .withContext(`In ${browserName}`)
+            .toEqual([0]);
         })
       );
     });

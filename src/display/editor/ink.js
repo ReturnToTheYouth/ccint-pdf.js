@@ -67,12 +67,20 @@ class InkEditor extends DrawingEditor {
 
   constructor(params) {
     super({ ...params, name: "inkEditor" });
-    this._willKeepAspectRatio = true;
+    this._willKeepAspectRatio = false;
     this.defaultL10nId = "pdfjs-editor-ink-editor";
   }
 
   getDefaultDrawingOptions() {
     return this.constructor._defaultDrawingOptions;
+  }
+
+  get _mustSelectAfterDrawing() {
+    return false;
+  }
+
+  get _supportsPageConstrainedDragging() {
+    return true;
   }
 
   /** @inheritdoc */
@@ -92,7 +100,7 @@ class InkEditor extends DrawingEditor {
 
   /** @inheritdoc */
   static get supportMultipleDrawings() {
-    return true;
+    return false;
   }
 
   /** @inheritdoc */

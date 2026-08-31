@@ -18,6 +18,8 @@ import {
   clearEditors,
   closePages,
   dragAndDrop,
+  dragToVerticalEdge,
+  firstPageOnTop,
   getAnnotationSelector,
   getEditors,
   getEditorSelector,
@@ -32,6 +34,7 @@ import {
   selectEditor,
   selectEditors,
   switchToEditor,
+  waitForAnnotationEditorLayer,
   waitForAnnotationModeChanged,
   waitForNoElement,
   waitForPointerUp,
@@ -46,11 +49,27 @@ const selectAll = selectEditors.bind(null, "ink");
 const clearAll = clearEditors.bind(null, "ink");
 
 const commit = async page => {
-  await page.keyboard.press("Escape");
-  await page.waitForSelector(".inkEditor.selectedEditor.draggable.disabled");
+  await page.waitForSelector(
+    ".inkEditor.draggable.disabled:not(.selectedEditor)"
+  );
+  const editorIds = await getEditors(page, "ink");
+  const editorSelector = getEditorSelector(editorIds.at(-1));
+  await page.waitForSelector(
+    `${editorSelector}.draggable.disabled:not(.selectedEditor)`
+  );
+  await selectEditor(page, editorSelector);
 };
 
 const switchToInk = switchToEditor.bind(null, "Ink");
+
+const zoomForVerticalAutoScroll = async page => {
+  const handle = await waitForAnnotationEditorLayer(page);
+  await page.evaluate(() => {
+    window.PDFViewerApplication.pdfViewer.currentScaleValue = 2;
+  });
+  await awaitPromise(handle);
+  await firstPageOnTop(page);
+};
 
 describe("Ink Editor", () => {
   describe("Basic operations", () => {
@@ -462,7 +481,7 @@ describe("Ink Editor", () => {
     });
   });
 
-  describe("Draw several times in the same editor", () => {
+  describe("Draw each stroke in its own editor", () => {
     let pages;
 
     beforeEach(async () => {
@@ -473,7 +492,7 @@ describe("Ink Editor", () => {
       await closePages(pages);
     });
 
-    it("must check that we can draw several times on the same canvas", async () => {
+    it("must create two unselected editors and use the ink-only box styles", async () => {
       await Promise.all(
         pages.map(async ([browserName, page]) => {
           await switchToInk(page);
@@ -481,18 +500,215 @@ describe("Ink Editor", () => {
 
           let xStart = rect.x + 10;
           const yStart = rect.y + 10;
-          for (let i = 0; i < 5; i++) {
+          for (let i = 0; i < 2; i++) {
             const clickHandle = await waitForPointerUp(page);
             await page.mouse.move(xStart, yStart);
             await page.mouse.down();
             await page.mouse.move(xStart + 50, yStart + 50);
             await page.mouse.up();
             await awaitPromise(clickHandle);
+            await page.waitForSelector(getEditorSelector(i));
+            await waitForSerialized(page, i + 1);
+            expect(await getEditors(page, "selected"))
+              .withContext(`In ${browserName}`)
+              .toEqual([]);
             xStart += 70;
           }
+
+          expect(await getEditors(page, "ink"))
+            .withContext(`In ${browserName}`)
+            .toEqual([0, 1]);
+          expect(await getSerialized(page, ({ paths }) => paths.points.length))
+            .withContext(`In ${browserName}`)
+            .toEqual([1, 1]);
+
+          const editorSelector = getEditorSelector(0);
+          await page.hover(editorSelector);
+          const hoverBox = await page.$eval(editorSelector, element => {
+            const style = getComputedStyle(element);
+            const beforeStyle = getComputedStyle(element, "::before");
+            return {
+              beforeDisplay: beforeStyle.display,
+              borderWidth: style.borderTopWidth,
+              outlineStyle: style.outlineStyle,
+            };
+          });
+          expect(hoverBox).withContext(`In ${browserName}`).toEqual({
+            beforeDisplay: "none",
+            borderWidth: "0px",
+            outlineStyle: "none",
+          });
+
+          await selectEditor(page, editorSelector);
+          const selectedBox = await page.$eval(editorSelector, element => {
+            const style = getComputedStyle(element);
+            const beforeStyle = getComputedStyle(element, "::before");
+            return {
+              beforeBorderStyle: beforeStyle.borderTopStyle,
+              borderWidth: style.borderTopWidth,
+              outlineStyle: style.outlineStyle,
+              outlineWidth: style.outlineWidth,
+            };
+          });
+          expect(selectedBox).withContext(`In ${browserName}`).toEqual({
+            beforeBorderStyle: "none",
+            borderWidth: "0px",
+            outlineStyle: "solid",
+            outlineWidth: "1px",
+          });
+        })
+      );
+    });
+
+    it("must not create an editor for a click without a valid stroke", async () => {
+      await Promise.all(
+        pages.map(async ([browserName, page]) => {
+          await switchToInk(page);
+          const rect = await getRect(page, ".annotationEditorLayer");
+          const clickHandle = await waitForPointerUp(page);
+          await page.mouse.click(rect.x + 20, rect.y + 20);
+          await awaitPromise(clickHandle);
+          await waitForTimeout(100);
+
+          expect(await getEditors(page, "ink"))
+            .withContext(`In ${browserName}`)
+            .toEqual([]);
+          expect((await getSerialized(page)).length)
+            .withContext(`In ${browserName}`)
+            .toEqual(0);
+        })
+      );
+    });
+  });
+
+  describe("Resize a single ink stroke", () => {
+    let pages;
+
+    beforeEach(async () => {
+      pages = await loadAndWait("empty.pdf", ".annotationEditorLayer");
+    });
+
+    afterEach(async () => {
+      await closePages(pages);
+    });
+
+    it("must expose eight resizers and resize one axis from edge handles", async () => {
+      await Promise.all(
+        pages.map(async ([browserName, page]) => {
+          await switchToInk(page);
+          const layerRect = await getRect(page, ".annotationEditorLayer");
+          const clickHandle = await waitForPointerUp(page);
+          await page.mouse.move(layerRect.x + 100, layerRect.y + 100);
+          await page.mouse.down();
+          await page.mouse.move(layerRect.x + 220, layerRect.y + 180);
+          await page.mouse.up();
+          await awaitPromise(clickHandle);
           await commit(page);
 
-          await page.waitForSelector(getEditorSelector(0));
+          const editorSelector = getEditorSelector(0);
+          const resizerNames = await page.$$eval(
+            `${editorSelector} .resizer`,
+            elements =>
+              elements.map(element => element.dataset.resizerName).sort()
+          );
+          expect(resizerNames)
+            .withContext(`In ${browserName}`)
+            .toEqual([
+              "bottomLeft",
+              "bottomMiddle",
+              "bottomRight",
+              "middleLeft",
+              "middleRight",
+              "topLeft",
+              "topMiddle",
+              "topRight",
+            ]);
+
+          const getDimensions = async () => {
+            const [x1, y1, x2, y2] = (
+              await getSerialized(page, ({ rect }) => rect)
+            )[0];
+            return [Math.abs(x2 - x1), Math.abs(y2 - y1)];
+          };
+          const [initialWidth, initialHeight] = await getDimensions();
+          await dragAndDrop(
+            page,
+            `${editorSelector} .resizer.middleRight`,
+            [[40, 0]],
+            10
+          );
+          const [widerWidth, sameHeight] = await getDimensions();
+          expect(widerWidth)
+            .withContext(`In ${browserName}`)
+            .toBeGreaterThan(initialWidth);
+          expect(Math.abs(sameHeight - initialHeight))
+            .withContext(`In ${browserName}`)
+            .toBeLessThan(2e-2);
+
+          await dragAndDrop(
+            page,
+            `${editorSelector} .resizer.bottomMiddle`,
+            [[0, 40]],
+            10
+          );
+          const [sameWidth, tallerHeight] = await getDimensions();
+          expect(Math.abs(sameWidth - widerWidth))
+            .withContext(`In ${browserName}`)
+            .toBeLessThan(2e-2);
+          expect(tallerHeight)
+            .withContext(`In ${browserName}`)
+            .toBeGreaterThan(sameHeight);
+        })
+      );
+    });
+  });
+
+  describe("Auto-scroll while dragging within the current page", () => {
+    let pages;
+
+    beforeEach(async () => {
+      pages = await loadAndWait("empty.pdf", ".annotationEditorLayer");
+    });
+
+    afterEach(async () => {
+      await closePages(pages);
+    });
+
+    it("must scroll vertically without changing the ink pageIndex", async () => {
+      await Promise.all(
+        pages.map(async ([browserName, page]) => {
+          await switchToInk(page);
+          await zoomForVerticalAutoScroll(page);
+          const rect = await getRect(page, ".annotationEditorLayer");
+          const clickHandle = await waitForPointerUp(page);
+          await page.mouse.move(rect.x + 100, rect.y + 100);
+          await page.mouse.down();
+          await page.mouse.move(rect.x + 180, rect.y + 160);
+          await page.mouse.up();
+          await awaitPromise(clickHandle);
+          await commit(page);
+
+          const editorSelector = getEditorSelector(0);
+          for (const direction of ["down", "up"]) {
+            const result = await dragToVerticalEdge(
+              page,
+              editorSelector,
+              direction
+            );
+            expect(
+              direction === "down"
+                ? result.scrollTop > result.startScrollTop
+                : result.scrollTop < result.startScrollTop
+            )
+              .withContext(`In ${browserName}, ${direction}`)
+              .toBeTrue();
+            expect(Math.abs(result.editorCenterY - result.pointerY))
+              .withContext(`In ${browserName}, ${direction}`)
+              .toBeLessThan(35);
+          }
+          expect(await getSerialized(page, ({ pageIndex }) => pageIndex))
+            .withContext(`In ${browserName}`)
+            .toEqual([0]);
         })
       );
     });

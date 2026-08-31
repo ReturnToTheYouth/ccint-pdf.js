@@ -548,7 +548,7 @@ class AnnotationEditor {
     this._onTranslated(this.x, this.y);
   }
 
-  drag(tx, ty) {
+  drag(tx, ty, isPageConstrained = false) {
     this.#initialRect ||= [this.x, this.y, this.width, this.height];
     const {
       div,
@@ -556,7 +556,12 @@ class AnnotationEditor {
     } = this;
     this.x += tx / parentWidth;
     this.y += ty / parentHeight;
-    if (this.parent && (this.x < 0 || this.x > 1 || this.y < 0 || this.y > 1)) {
+    if (isPageConstrained) {
+      this.fixAndSetPosition();
+    } else if (
+      this.parent &&
+      (this.x < 0 || this.x > 1 || this.y < 0 || this.y > 1)
+    ) {
       // It's possible to not have a parent: for example, when the user is
       // dragging all the selected editors but this one on a page which has been
       // destroyed.
@@ -572,8 +577,8 @@ class AnnotationEditor {
       }
     }
 
-    // The editor can be moved wherever the user wants, so we don't need to fix
-    // the position: it'll be done when the user will release the mouse button.
+    // Unconstrained editors can temporarily live outside their parent while
+    // dragging. Page-constrained editors have already been clamped above.
 
     let { x, y } = this;
     const [bx, by] = this.getBaseTranslation();
@@ -586,7 +591,9 @@ class AnnotationEditor {
 
     this._onTranslating(x, y);
 
-    div.scrollIntoView({ block: "nearest" });
+    if (!isPageConstrained) {
+      div.scrollIntoView({ block: "nearest" });
+    }
   }
 
   /**
@@ -648,6 +655,10 @@ class AnnotationEditor {
    */
   get _mustFixPosition() {
     return true;
+  }
+
+  get _supportsPageConstrainedDragging() {
+    return false;
   }
 
   /**
@@ -944,14 +955,7 @@ class AnnotationEditor {
     }
 
     this.addCommands({
-      cmd: this.#resize.bind(
-        this,
-        newX,
-        newY,
-        newWidth,
-        newHeight,
-        newExtra
-      ),
+      cmd: this.#resize.bind(this, newX, newY, newWidth, newHeight, newExtra),
       undo: this.#resize.bind(
         this,
         savedX,
@@ -1087,8 +1091,7 @@ class AnnotationEditor {
           Math.abs(oppositePoint[0] - point[0] - deltaX),
           minWidth,
           maxWidth
-        ) /
-        savedWidth;
+        ) / savedWidth;
     } else {
       ratioY =
         MathClamp(
@@ -1415,7 +1418,7 @@ class AnnotationEditor {
 
   #setUpDragSession(event) {
     const { isSelected } = this;
-    this._uiManager.setUpDragSession();
+    this._uiManager.setUpDragSession(this);
     let hasDraggingStarted = false;
 
     const ac = new AbortController();
@@ -1457,7 +1460,7 @@ class AnnotationEditor {
           );
           this.#prevDragX = x;
           this.#prevDragY = y;
-          this._uiManager.dragSelectedEditors(tx, ty);
+          this._uiManager.dragSelectedEditors(tx, ty, y);
         },
         opts
       );
@@ -1486,13 +1489,19 @@ class AnnotationEditor {
     }
 
     const pointerUpCallback = e => {
-      if (!this.#dragPointerId || this.#dragPointerId === e.pointerId) {
+      if (
+        e.type === "blur" ||
+        e.type === "pointercancel" ||
+        !this.#dragPointerId ||
+        this.#dragPointerId === e.pointerId
+      ) {
         cancelDrag(e);
         return;
       }
       stopEvent(e);
     };
     window.addEventListener("pointerup", pointerUpCallback, { signal });
+    window.addEventListener("pointercancel", pointerUpCallback, { signal });
     // If the user is using alt+tab during the dragging session, the pointerup
     // event could be not fired, but a blur event is fired so we can use it in
     // order to interrupt the dragging session.

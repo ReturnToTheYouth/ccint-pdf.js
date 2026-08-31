@@ -541,6 +541,57 @@ async function dragAndDrop(page, selector, translations, steps = 1) {
   await page.waitForSelector("#viewer:not(.noUserSelect)");
 }
 
+async function dragToVerticalEdge(page, selector, direction) {
+  const editorRect = await getRect(page, selector);
+  const startX = editorRect.x + editorRect.width / 2;
+  const startY = editorRect.y + editorRect.height / 2;
+  const viewport = await page.evaluate(() => {
+    const container = document.getElementById("viewerContainer");
+    const { top } = container.getBoundingClientRect();
+    const viewportTop = top + container.clientTop;
+    return {
+      bottom: viewportTop + container.clientHeight,
+      scrollTop: container.scrollTop,
+      top: viewportTop,
+    };
+  });
+  const pointerY =
+    direction === "down" ? viewport.bottom - 5 : viewport.top + 5;
+
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  let result;
+  try {
+    await page.mouse.move(startX, pointerY, { steps: 5 });
+    await page.waitForFunction(
+      ({ initialScrollTop, scrollDirection }) => {
+        const { scrollTop } = document.getElementById("viewerContainer");
+        return scrollDirection === "down"
+          ? scrollTop > initialScrollTop + 8
+          : scrollTop < initialScrollTop - 8;
+      },
+      {},
+      {
+        initialScrollTop: viewport.scrollTop,
+        scrollDirection: direction,
+      }
+    );
+    const movedRect = await getRect(page, selector);
+    result = {
+      editorCenterY: movedRect.y + movedRect.height / 2,
+      pointerY,
+      scrollTop: await page.evaluate(
+        () => document.getElementById("viewerContainer").scrollTop
+      ),
+      startScrollTop: viewport.scrollTop,
+    };
+  } finally {
+    await page.mouse.up();
+  }
+  await page.waitForSelector("#viewer:not(.noUserSelect)");
+  return result;
+}
+
 function waitForAnnotationEditorLayer(page) {
   return createPromise(page, resolve => {
     window.PDFViewerApplication.eventBus.on(
@@ -893,6 +944,7 @@ export {
   copyToClipboard,
   createPromise,
   dragAndDrop,
+  dragToVerticalEdge,
   firstPageOnTop,
   getAnnotationSelector,
   getAnnotationStorage,

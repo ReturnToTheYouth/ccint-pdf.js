@@ -350,6 +350,10 @@ class DrawingEditor extends AnnotationEditor {
     return true;
   }
 
+  get _mustSelectAfterDrawing() {
+    return true;
+  }
+
   /** @inheritdoc */
   onceAdded(focus) {
     if (!this.annotationElementId) {
@@ -359,9 +363,11 @@ class DrawingEditor extends AnnotationEditor {
     if (this.#mustBeCommitted) {
       this.#mustBeCommitted = false;
       this.commit();
-      this.parent.setSelected(this);
-      if (focus && this.isOnScreen) {
-        this.div.focus();
+      if (this._mustSelectAfterDrawing) {
+        this.parent.setSelected(this);
+        if (focus && this.isOnScreen) {
+          this.div.focus();
+        }
       }
     }
   }
@@ -856,16 +862,17 @@ class DrawingEditor extends AnnotationEditor {
         DrawingEditor.#currentDraw.end(event.offsetX, event.offsetY)
       );
     }
-    if (this.supportMultipleDrawings) {
-      const draw = DrawingEditor.#currentDraw;
-      const drawId = this._currentDrawId;
-      if (!draw.isLastElementValid()) {
-        parent.drawLayer.updateProperties(drawId, draw.removeLastElement());
-        if (draw.isEmpty()) {
-          parent.endDrawingSession(/* isAborted = */ true);
-        }
-        return;
+    const draw = DrawingEditor.#currentDraw;
+    const drawId = this._currentDrawId;
+    if (!draw.isLastElementValid()) {
+      parent.drawLayer.updateProperties(drawId, draw.removeLastElement());
+      if (draw.isEmpty()) {
+        parent.endDrawingSession(/* isAborted = */ true);
       }
+      return;
+    }
+
+    if (this.supportMultipleDrawings) {
       const lastElement = draw.getLastElement();
       parent.addCommands({
         cmd: () => {
@@ -884,7 +891,7 @@ class DrawingEditor extends AnnotationEditor {
       return;
     }
 
-    this.endDrawing(/* isAborted = */ false);
+    parent.endDrawingSession(/* isAborted = */ false);
   }
 
   static endDrawing(isAborted, needUnselect = false) {
@@ -896,7 +903,6 @@ class DrawingEditor extends AnnotationEditor {
     parent.cleanUndoStack(AnnotationEditorParamsType.DRAW_STEP);
 
     if (
-      this.supportMultipleDrawings &&
       !DrawingEditor.#currentDraw.isEmpty() &&
       !DrawingEditor.#currentDraw.isLastElementValid()
     ) {
