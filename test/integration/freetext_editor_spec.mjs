@@ -1386,6 +1386,105 @@ describe("FreeText Editor", () => {
         })
       );
     });
+
+    it("must keep the visual top-left corner when changing the font size", async () => {
+      await Promise.all(
+        pages.map(async ([browserName, page]) => {
+          await page.evaluate(() => {
+            window.PDFViewerApplication.rotatePages(90);
+          });
+          await page.waitForSelector(
+            ".annotationEditorLayer[data-main-rotation='90']"
+          );
+          await switchToFreeText(page);
+
+          const layerRect = await getRect(page, ".annotationEditorLayer");
+          const editorSelector = getEditorSelector(0);
+          await page.mouse.click(layerRect.x + 150, layerRect.y + 150);
+          await page.waitForSelector(editorSelector, { visible: true });
+          await page.type(
+            `${editorSelector} .internal`,
+            "The first line\nA longer second line"
+          );
+          await commit(page);
+          await selectAll(page);
+
+          const getState = () =>
+            page.$eval(editorSelector, editor => {
+              const { x, y, width, height } = editor.getBoundingClientRect();
+              return {
+                x,
+                y,
+                width,
+                height,
+                fontSize: getComputedStyle(editor.querySelector(".internal"))
+                  .fontSize,
+              };
+            });
+          const setFontSize = value =>
+            page.evaluate(size => {
+              window.PDFViewerApplication.eventBus.dispatch(
+                "switchannotationeditorparams",
+                {
+                  source: null,
+                  type: window.pdfjsLib.AnnotationEditorParamsType
+                    .FREETEXT_SIZE,
+                  value: size,
+                  fromGlobal: false,
+                }
+              );
+            }, value);
+          const expectSameTopLeft = (actual, expected, context) => {
+            expect(Math.abs(actual.x - expected.x))
+              .withContext(`${context} x in ${browserName}`)
+              .toBeLessThan(1.5);
+            expect(Math.abs(actual.y - expected.y))
+              .withContext(`${context} y in ${browserName}`)
+              .toBeLessThan(1.5);
+          };
+
+          const initial = await getState();
+          await setFontSize(36);
+          await page.waitForFunction(
+            (selector, previous) =>
+              getComputedStyle(document.querySelector(`${selector} .internal`))
+                .fontSize !== previous,
+            {},
+            editorSelector,
+            initial.fontSize
+          );
+          const enlarged = await getState();
+          expect(enlarged.fontSize)
+            .withContext(`In ${browserName}`)
+            .not.toEqual(initial.fontSize);
+          expectSameTopLeft(enlarged, initial, "after resizing");
+
+          await page.evaluate(() => {
+            window.PDFViewerApplication.pdfViewer.annotationEditorUIManager.undo();
+          });
+          const undone = await getState();
+          expect(undone.fontSize)
+            .withContext(`Undo in ${browserName}`)
+            .toEqual(initial.fontSize);
+          expectSameTopLeft(undone, initial, "after undo");
+          expect(Math.abs(undone.width - initial.width))
+            .withContext(`Undo width in ${browserName}`)
+            .toBeLessThan(1.5);
+          expect(Math.abs(undone.height - initial.height))
+            .withContext(`Undo height in ${browserName}`)
+            .toBeLessThan(1.5);
+
+          await page.evaluate(() => {
+            window.PDFViewerApplication.pdfViewer.annotationEditorUIManager.redo();
+          });
+          const redone = await getState();
+          expect(redone.fontSize)
+            .withContext(`Redo in ${browserName}`)
+            .toEqual(enlarged.fontSize);
+          expectSameTopLeft(redone, enlarged, "after redo");
+        })
+      );
+    });
   });
 
   describe("FreeText (remove)", () => {

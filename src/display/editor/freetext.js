@@ -353,23 +353,189 @@ class FreeTextEditor extends AnnotationEditor {
    * @param {number} fontSize
    */
   #updateFontSize(fontSize) {
-    const setFontsize = size => {
-      this.editorDiv.style.fontSize = `calc(${size}px * var(--total-scale-factor))`;
-      this.translate(0, -(size - this.#fontSize) * this.parentScale);
-      this.#fontSize = size;
-      this.#scheduleMeasurement();
-      this.#syncDrawLayer();
+    let savedState;
+    let newState;
+    const setFontSize = () => {
+      if (newState) {
+        this.#restoreFontSizeState(newState);
+        return;
+      }
+      savedState = this.#setFontSizeAndKeepVisualPosition(fontSize);
+      newState = this.#captureFontSizeState();
     };
-    const savedFontsize = this.#fontSize;
     this.addCommands({
-      cmd: setFontsize.bind(this, fontSize),
-      undo: setFontsize.bind(this, savedFontsize),
+      cmd: setFontSize,
+      undo: () => this.#restoreFontSizeState(savedState),
       post: this._uiManager.updateUI.bind(this._uiManager, this),
       mustExec: true,
       type: AnnotationEditorParamsType.FREETEXT_SIZE,
       overwriteIfSameType: true,
       keepUndo: true,
     });
+  }
+
+  #captureFontSizeState() {
+    return {
+      fontSize: this.#fontSize,
+      x: this.x,
+      y: this.y,
+      width: this.width,
+      height: this.height,
+      hasFixedWidth: this.#hasFixedWidth,
+      hasFixedHeight: this.#hasFixedHeight,
+      styleWidth: this.div?.style.width ?? "",
+      styleHeight: this.div?.style.height ?? "",
+    };
+  }
+
+  #restoreFontSizeState(state) {
+    if (!state) {
+      return;
+    }
+    this.#cancelPendingMeasurement();
+    this.#fontSize = state.fontSize;
+    if (this.editorDiv) {
+      this.editorDiv.style.fontSize = `calc(${state.fontSize}px * var(--total-scale-factor))`;
+    }
+    this.x = state.x;
+    this.y = state.y;
+    this.width = state.width;
+    this.height = state.height;
+    this.#hasFixedWidth = state.hasFixedWidth;
+    this.#hasFixedHeight = state.hasFixedHeight;
+
+    if (this.div) {
+      if (this.parent) {
+        const [parentWidth, parentHeight] = this.parentDimensions;
+        this.setDims(parentWidth * state.width, parentHeight * state.height);
+      }
+      this.div.style.width = state.styleWidth;
+      this.div.style.height = state.styleHeight;
+      if (this.parent) {
+        this.fixAndSetPosition();
+      }
+    }
+    this.#updateMeasureContent();
+    this.#syncDrawLayer();
+  }
+
+  static #isValidRect(rect) {
+    return (
+      rect !== null &&
+      [rect.left, rect.top, rect.width, rect.height].every(Number.isFinite) &&
+      rect.width > 0 &&
+      rect.height > 0
+    );
+  }
+
+  #setFontSize(size) {
+    this.#fontSize = size;
+    if (this.editorDiv) {
+      this.editorDiv.style.fontSize = `calc(${size}px * var(--total-scale-factor))`;
+    }
+  }
+
+  #setFontSizeAndKeepVisualPosition(size) {
+    this.#cancelPendingMeasurement();
+    const { div, editorDiv, parent } = this;
+    if (!div || !editorDiv || !parent) {
+      const savedState = this.#captureFontSizeState();
+      this.#setFontSize(size);
+      this.#syncDrawLayer();
+      return savedState;
+    }
+
+    let rect = div.getBoundingClientRect();
+    if (
+      !this.isAttachedToDOM ||
+      !div.isConnected ||
+      div.classList.contains("hidden") ||
+      !FreeTextEditor.#isValidRect(rect)
+    ) {
+      return this.#setFontSizeInTemporaryLayout(size);
+    }
+
+    this.#flushPendingMeasurement(/* force = */ true);
+    rect = div.getBoundingClientRect();
+    if (!FreeTextEditor.#isValidRect(rect)) {
+      return this.#setFontSizeInTemporaryLayout(size);
+    }
+
+    const savedState = this.#captureFontSizeState();
+    const { left, top } = rect;
+    this.#setFontSize(size);
+
+    // Translating can change the available line width. Keep the correction
+    // bounded so content close to a page edge cannot oscillate indefinitely.
+    for (let i = 0; i < 2; i++) {
+      this.#flushPendingMeasurement(/* force = */ true);
+      rect = div.getBoundingClientRect();
+      if (!FreeTextEditor.#isValidRect(rect)) {
+        break;
+      }
+      const deltaX = left - rect.left;
+      const deltaY = top - rect.top;
+      if (Math.abs(deltaX) < 0.5 && Math.abs(deltaY) < 0.5) {
+        break;
+      }
+      this.translate(deltaX, deltaY);
+    }
+    this.#flushPendingMeasurement(/* force = */ true);
+    this.#syncDrawLayer();
+    return savedState;
+  }
+
+  #setFontSizeInTemporaryLayout(size) {
+    const savedState = this.#captureFontSizeState();
+    const { div, parent } = this;
+    if (!div || !this.editorDiv || !parent?.div?.isConnected) {
+      this.#setFontSize(size);
+      this.#syncDrawLayer();
+      return savedState;
+    }
+
+    const originalParent = div.parentNode;
+    const originalNextSibling = div.nextSibling;
+    const savedAttached = this.isAttachedToDOM;
+    const savedHidden = div.classList.contains("hidden");
+    const savedDisplay = div.style.display;
+    const savedVisibility = div.style.visibility;
+    try {
+      div.classList.remove("hidden");
+      div.style.display = "";
+      div.style.visibility = "hidden";
+      parent.div.append(div);
+      this.isAttachedToDOM = true;
+
+      const rect = div.getBoundingClientRect();
+      if (!FreeTextEditor.#isValidRect(rect)) {
+        this.#setFontSize(size);
+        this.#syncDrawLayer();
+        return savedState;
+      }
+
+      this.#flushPendingMeasurement(/* force = */ true);
+      Object.assign(savedState, this.#captureFontSizeState());
+      this.#setFontSize(size);
+      this.#flushPendingMeasurement(/* force = */ true);
+
+      // There is no visual anchor while the editor is hidden or detached.
+      // Preserve its normalized page position and only update its dimensions.
+      this.x = savedState.x;
+      this.y = savedState.y;
+      this.#syncDrawLayer();
+      return savedState;
+    } finally {
+      this.isAttachedToDOM = savedAttached;
+      div.classList.toggle("hidden", savedHidden);
+      div.style.display = savedDisplay;
+      div.style.visibility = savedVisibility;
+      if (originalParent) {
+        originalParent.insertBefore(div, originalNextSibling);
+      } else {
+        div.remove();
+      }
+    }
   }
 
   /**
