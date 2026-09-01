@@ -1015,7 +1015,9 @@ class FreeTextEditor extends AnnotationEditor {
       if (minHeight > this.height) {
         this.height = minHeight;
         this.setDims(parentWidth * this.width, parentHeight * this.height);
-        this.fixAndSetPosition();
+        if (!this.#isComposing) {
+          this.fixAndSetPosition();
+        }
       }
     }
 
@@ -1046,12 +1048,14 @@ class FreeTextEditor extends AnnotationEditor {
       this.width = rect.height / parentWidth;
       this.height = rect.width / parentHeight;
     }
-    this.fixAndSetPosition();
+    if (!this.#isComposing) {
+      this.fixAndSetPosition();
+    }
     this.#syncDrawLayer();
   }
 
-  #scheduleMeasurement() {
-    if (this.#isComposing) {
+  #scheduleMeasurement(allowDuringComposition = false) {
+    if (this.#isComposing && !allowDuringComposition) {
       return;
     }
     this.#updateMeasureContent();
@@ -1433,9 +1437,7 @@ class FreeTextEditor extends AnnotationEditor {
 
   editorDivInput(event) {
     this.#content = this.editorDiv.value.replaceAll(EOL_PATTERN, "\n");
-    if (!this.#isComposing && !event.isComposing) {
-      this.#scheduleMeasurement();
-    }
+    this.#scheduleMeasurement(this.#isComposing || event.isComposing);
     this.parent.div.classList.toggle("freetextEditing", this.isEmpty());
   }
 

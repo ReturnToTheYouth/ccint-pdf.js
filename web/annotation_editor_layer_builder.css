@@ -582,7 +582,8 @@
   opacity: 1;
 }
 
-.annotationEditorLayer .freeTextEditor.imeComposingNoWrap .internal {
+.annotationEditorLayer .freeTextEditor.imeComposingNoWrap .internal,
+.annotationEditorLayer .freeTextEditor.imeComposingNoWrap .freetextMeasure {
   white-space: pre;
   overflow-wrap: normal;
 }

@@ -677,6 +677,10 @@ class AnnotationEditorLayer {
       editor._focusEventsAllowed = false;
       this.#editorFocusTimeoutId = setTimeout(() => {
         this.#editorFocusTimeoutId = null;
+        if (!editor.isSelected && !editor.isInEditMode()) {
+          editor._focusEventsAllowed = true;
+          return;
+        }
         if (!editor.div.contains(document.activeElement)) {
           editor.div.addEventListener(
             "focusin",
@@ -988,6 +992,13 @@ class AnnotationEditorLayer {
 
     const editor = this.#uiManager.getActive();
     this.#allowClick = !editor || editor.isEmpty();
+    if (
+      this.#uiManager.getMode() === AnnotationEditorType.FREETEXT &&
+      !this.#allowClick
+    ) {
+      editor.commitOrRemove();
+      this.#uiManager.unselect(editor, /* focus = */ false);
+    }
 
     // 如果是区域高亮、获取editor的位置并创建
     if (this.#uiManager.getMode() === AnnotationEditorType.AREAHIGHLIGHT) {

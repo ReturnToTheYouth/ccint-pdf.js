@@ -438,6 +438,302 @@ describe("FreeText Editor", () => {
     });
   });
 
+  describe("FreeText IME composition", () => {
+    let pages;
+
+    beforeEach(async () => {
+      pages = await loadAndWait("empty.pdf", ".annotationEditorLayer");
+    });
+
+    afterEach(async () => {
+      await closePages(pages);
+    });
+
+    it("must resize live during composition and preserve a fixed width", async () => {
+      await Promise.all(
+        pages.map(async ([browserName, page]) => {
+          await switchToFreeText(page);
+
+          const layerRect = await getRect(page, ".annotationEditorLayer");
+          const firstEditorSelector = getEditorSelector(0);
+          await page.mouse.click(layerRect.x + 50, layerRect.y + 50);
+          await page.waitForSelector(firstEditorSelector, { visible: true });
+          await page.type(`${firstEditorSelector} .internal`, "First editor");
+          await page.$eval(".annotationEditorLayer", layer => {
+            layer.focusCount = 0;
+            layer.addEventListener("focusin", event => {
+              if (event.target === layer) {
+                layer.focusCount++;
+              }
+            });
+          });
+
+          await page.mouse.move(layerRect.x + 250, layerRect.y + 150);
+          await page.mouse.down();
+          await page.evaluate(
+            () => new Promise(resolve => requestAnimationFrame(resolve))
+          );
+          const firstEditorState = await page.$eval(
+            firstEditorSelector,
+            editor => ({
+              editing: editor.classList.contains("editing"),
+              selected: editor.classList.contains("selectedEditor"),
+              resizersHidden:
+                editor
+                  .querySelector(":scope > .resizers")
+                  ?.classList.contains("hidden") ?? true,
+              toolbarHidden:
+                editor
+                  .querySelector(":scope > .editToolbar")
+                  ?.classList.contains("hidden") ?? true,
+            })
+          );
+          expect(firstEditorState)
+            .withContext(`Committed editor state in ${browserName}`)
+            .toEqual({
+              editing: false,
+              selected: false,
+              resizersHidden: true,
+              toolbarHidden: true,
+            });
+          const layerFocusState = await page.$eval(
+            ".annotationEditorLayer",
+            layer => ({
+              active: document.activeElement === layer,
+              count: layer.focusCount,
+            })
+          );
+          expect(layerFocusState)
+            .withContext(`Layer focus in ${browserName}`)
+            .toEqual({ active: false, count: 0 });
+          await waitForStorageEntries(page, 1);
+
+          const editorSelector = getEditorSelector(1);
+          const inputSelector = `${editorSelector} .internal`;
+          await page.mouse.up();
+          await page.waitForSelector(editorSelector, { visible: true });
+          await page.waitForFunction(
+            selector =>
+              document.activeElement === document.querySelector(selector),
+            {},
+            inputSelector
+          );
+          await page.evaluate(
+            () =>
+              new Promise(resolve => {
+                requestAnimationFrame(() =>
+                  requestAnimationFrame(() => setTimeout(resolve, 0))
+                );
+              })
+          );
+          expect(
+            await page.$eval(
+              inputSelector,
+              input => document.activeElement === input
+            )
+          )
+            .withContext(`New editor focus in ${browserName}`)
+            .toEqual(true);
+          await page.$eval(inputSelector, input => {
+            input.imeLifecycle = { blur: 0, compositionend: 0 };
+            input.addEventListener("blur", () => {
+              input.imeLifecycle.blur++;
+            });
+            input.addEventListener("compositionend", () => {
+              input.imeLifecycle.compositionend++;
+            });
+          });
+
+          const dispatchCompositionInput = value =>
+            page.$eval(
+              inputSelector,
+              (input, text) => {
+                input.value = text;
+                input.dispatchEvent(
+                  new InputEvent("input", {
+                    bubbles: true,
+                    data: text,
+                    inputType: "insertCompositionText",
+                    isComposing: true,
+                  })
+                );
+              },
+              value
+            );
+          const waitForAnimationFrames = () =>
+            page.evaluate(
+              () =>
+                new Promise(resolve => {
+                  requestAnimationFrame(() =>
+                    requestAnimationFrame(() => setTimeout(resolve, 0))
+                  );
+                })
+            );
+          const expectCompositionActive = async context => {
+            const state = await page.$eval(inputSelector, input => ({
+              active: document.activeElement === input,
+              composing: input
+                .closest(".freeTextEditor")
+                .classList.contains("imeComposingNoWrap"),
+              ...input.imeLifecycle,
+            }));
+            expect(state.active)
+              .withContext(`${context} focus in ${browserName}`)
+              .toEqual(true);
+            expect(state.blur)
+              .withContext(`${context} blur in ${browserName}`)
+              .toEqual(0);
+            expect(state.compositionend)
+              .withContext(`${context} compositionend in ${browserName}`)
+              .toEqual(0);
+            expect(state.composing)
+              .withContext(`${context} composition class in ${browserName}`)
+              .toEqual(true);
+          };
+
+          const initialRect = await getRect(page, editorSelector);
+          await page.$eval(inputSelector, input => {
+            input.dispatchEvent(
+              new CompositionEvent("compositionstart", { bubbles: true })
+            );
+          });
+          await page.waitForSelector(`${editorSelector}.imeComposingNoWrap`);
+
+          await dispatchCompositionInput("ni");
+          await page.waitForFunction(
+            (selector, width) =>
+              document.querySelector(selector).getBoundingClientRect().width >
+              width + 1,
+            {},
+            editorSelector,
+            initialRect.width
+          );
+          const shortRect = await getRect(page, editorSelector);
+          await waitForAnimationFrames();
+          await expectCompositionActive("Short composition");
+
+          await dispatchCompositionInput("nihaoshijiezhendehenchang");
+          await page.waitForFunction(
+            (selector, width) =>
+              document.querySelector(selector).getBoundingClientRect().width >
+              width + 10,
+            {},
+            editorSelector,
+            shortRect.width
+          );
+          const longRect = await getRect(page, editorSelector);
+          expect(Math.abs(longRect.x - shortRect.x))
+            .withContext(`Composition anchor in ${browserName}`)
+            .toBeLessThan(1.5);
+          await waitForAnimationFrames();
+          await expectCompositionActive("Long composition");
+
+          await dispatchCompositionInput("ni");
+          await page.waitForFunction(
+            (selector, width) =>
+              document.querySelector(selector).getBoundingClientRect().width <
+              width - 10,
+            {},
+            editorSelector,
+            longRect.width
+          );
+          const shortenedRect = await getRect(page, editorSelector);
+          expect(Math.abs(shortenedRect.x - shortRect.x))
+            .withContext(`Shortened composition anchor in ${browserName}`)
+            .toBeLessThan(1.5);
+          await waitForAnimationFrames();
+          await expectCompositionActive("Shortened composition");
+
+          // Some browsers dispatch the input containing the committed text
+          // before compositionend.
+          await dispatchCompositionInput("你");
+          await page.waitForFunction(
+            (selector, width) =>
+              document.querySelector(selector).getBoundingClientRect().width <
+              width - 10,
+            {},
+            editorSelector,
+            longRect.width
+          );
+          await page.$eval(inputSelector, input => {
+            input.dispatchEvent(
+              new CompositionEvent("compositionend", {
+                bubbles: true,
+                data: input.value,
+              })
+            );
+          });
+          await page.waitForFunction(
+            selector =>
+              !document
+                .querySelector(selector)
+                .classList.contains("imeComposingNoWrap"),
+            {},
+            editorSelector
+          );
+          await waitForAnimationFrames();
+          expect(await page.$eval(inputSelector, input => input.value))
+            .withContext(`Committed composition in ${browserName}`)
+            .toEqual("你");
+
+          await commit(page);
+          await page.waitForSelector(`${editorSelector} .resizer.middleRight`);
+          await dragAndDrop(
+            page,
+            `${editorSelector} .resizer.middleRight`,
+            [[80, 0]],
+            10
+          );
+          const fixedRect = await getRect(page, editorSelector);
+
+          await selectEditor(page, editorSelector, /* count = */ 2);
+          await page.waitForSelector(`${editorSelector}.editing`);
+          await page.$eval(inputSelector, input => {
+            input.dispatchEvent(
+              new CompositionEvent("compositionstart", { bubbles: true })
+            );
+          });
+          await dispatchCompositionInput("nihaoshijiezhendehenchang");
+          await waitForAnimationFrames();
+          let composedFixedRect = await getRect(page, editorSelector);
+          expect(Math.abs(composedFixedRect.width - fixedRect.width))
+            .withContext(`Fixed composition width in ${browserName}`)
+            .toBeLessThan(1.5);
+
+          await dispatchCompositionInput("ni");
+          await waitForAnimationFrames();
+          composedFixedRect = await getRect(page, editorSelector);
+          expect(Math.abs(composedFixedRect.width - fixedRect.width))
+            .withContext(`Fixed shortened width in ${browserName}`)
+            .toBeLessThan(1.5);
+
+          // Other browsers dispatch the final input after compositionend.
+          await page.$eval(inputSelector, input => {
+            input.dispatchEvent(
+              new CompositionEvent("compositionend", { bubbles: true })
+            );
+            input.value = "你";
+            input.dispatchEvent(
+              new InputEvent("input", {
+                bubbles: true,
+                data: input.value,
+                inputType: "insertText",
+              })
+            );
+          });
+          await waitForAnimationFrames();
+          const committedFixedRect = await getRect(page, editorSelector);
+          expect(Math.abs(committedFixedRect.width - fixedRect.width))
+            .withContext(`Fixed committed width in ${browserName}`)
+            .toBeLessThan(1.5);
+          expect(await page.$eval(inputSelector, input => input.value))
+            .withContext(`Fixed committed composition in ${browserName}`)
+            .toEqual("你");
+        })
+      );
+    });
+  });
+
   describe("FreeText (multiselection)", () => {
     let pages;
 

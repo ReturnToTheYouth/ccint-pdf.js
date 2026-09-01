@@ -2371,9 +2371,11 @@ class AnnotationEditorUIManager {
   /**
    * Unselect an editor.
    * @param {AnnotationEditor} editor
+   * @param {boolean} [focus=true] - Whether to move focus back to the current
+   *   annotation editor layer.
    */
-  unselect(editor) {
-    editor.unselect();
+  unselect(editor, focus = true) {
+    editor.unselect(focus);
     this.#selectedEditors.delete(editor);
     this.#dispatchUpdateStates({
       hasSelectedEditor: this.hasSelection,

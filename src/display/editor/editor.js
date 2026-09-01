@@ -2025,12 +2025,14 @@ class AnnotationEditor {
 
   /**
    * Unselect this editor.
+   * @param {boolean} [focus=true] - Whether to move focus back to the current
+   *   annotation editor layer.
    */
-  unselect() {
+  unselect(focus = true) {
     this.#resizersDiv?.classList.add("hidden");
     this.div?.classList.remove("selectedEditor");
     this.div.style.zIndex = this.#zIndex;
-    if (this.div?.contains(document.activeElement)) {
+    if (focus && this.div?.contains(document.activeElement)) {
       // Don't use this.div.blur() because we don't know where the focus will
       // go.
       this._uiManager.currentLayer.div.focus({
