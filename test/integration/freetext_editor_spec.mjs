@@ -1595,6 +1595,165 @@ describe("FreeText Editor", () => {
       await closePages(pages);
     });
 
+    it("must keep committed text in the DrawLayer while rotating the page", async () => {
+      await closePages(pages);
+      pages = await loadAndWait(
+        "empty.pdf",
+        ".annotationEditorLayer",
+        undefined,
+        undefined,
+        { maxCanvasPixels: 0 }
+      );
+
+      await Promise.all(
+        pages.map(async ([browserName, page]) => {
+          await switchToFreeText(page);
+
+          const layerRect = await getRect(page, ".annotationEditorLayer");
+          const editorSelector = getEditorSelector(0);
+          const data = "Visible after rotation";
+          await page.mouse.click(layerRect.x + 100, layerRect.y + 100);
+          await page.waitForSelector(editorSelector, { visible: true });
+          await page.type(`${editorSelector} .internal`, data);
+          await commit(page);
+
+          const getDrawState = () =>
+            page.evaluate(expectedText => {
+              const roots = [
+                ...document.querySelectorAll(".canvasWrapper svg.freeText"),
+              ].filter(
+                root =>
+                  root.querySelector(".freeTextContent")?.textContent ===
+                  expectedText
+              );
+              const root = roots[0];
+              if (!root) {
+                return { count: roots.length };
+              }
+
+              const content = root.querySelector(".freeTextContent");
+              const wrapperRect = root
+                .closest(".canvasWrapper")
+                .getBoundingClientRect();
+              const range = document.createRange();
+              range.selectNodeContents(content);
+              const textRect = range.getBoundingClientRect();
+              const rootRect = root.getBoundingClientRect();
+              const intersects = (rect, container) =>
+                rect.width > 0 &&
+                rect.height > 0 &&
+                rect.right > container.left &&
+                rect.left < container.right &&
+                rect.bottom > container.top &&
+                rect.top < container.bottom;
+
+              return {
+                count: roots.length,
+                contentRotation: root.dataset.contentRotation,
+                contentWidth: content.style.width,
+                contentHeight: content.style.height,
+                hidden:
+                  root.classList.contains("hidden") ||
+                  getComputedStyle(root).display === "none",
+                rootIntersectsPage: intersects(rootRect, wrapperRect),
+                textIntersectsPage: intersects(textRect, wrapperRect),
+                textIntersectsRoot: intersects(textRect, rootRect),
+                rect: {
+                  x: rootRect.x,
+                  y: rootRect.y,
+                  width: rootRect.width,
+                  height: rootRect.height,
+                },
+              };
+            }, data);
+
+          const initial = await getDrawState();
+          expect(initial.count).withContext(`In ${browserName}`).toEqual(1);
+          expect(initial.contentRotation)
+            .withContext(`In ${browserName}`)
+            .toEqual("0");
+          const initialSerialized = await getFirstSerialized(page);
+
+          for (const [delta, rotation] of [
+            [90, 90],
+            [90, 180],
+            [90, 270],
+            [90, 0],
+            [-90, 270],
+            [90, 0],
+          ]) {
+            await page.evaluate(angle => {
+              window.PDFViewerApplication.rotatePages(angle);
+            }, delta);
+            await page.waitForSelector(
+              `.annotationEditorLayer[data-main-rotation='${rotation}']`
+            );
+            await page.waitForFunction(
+              (expectedText, expectedRotation) => {
+                const roots = [
+                  ...document.querySelectorAll(".canvasWrapper svg.freeText"),
+                ].filter(
+                  root =>
+                    root.querySelector(".freeTextContent")?.textContent ===
+                    expectedText
+                );
+                return (
+                  roots.length === 1 &&
+                  roots[0].dataset.contentRotation === expectedRotation
+                );
+              },
+              {},
+              data,
+              `${rotation}`
+            );
+
+            const state = await getDrawState();
+            expect(state.count)
+              .withContext(`At ${rotation}° in ${browserName}`)
+              .toEqual(1);
+            expect(state.hidden)
+              .withContext(`At ${rotation}° in ${browserName}`)
+              .toEqual(false);
+            expect(state.rootIntersectsPage)
+              .withContext(`At ${rotation}° in ${browserName}`)
+              .toEqual(true);
+            expect(state.textIntersectsPage)
+              .withContext(`At ${rotation}° in ${browserName}`)
+              .toEqual(true);
+            expect(state.textIntersectsRoot)
+              .withContext(`At ${rotation}° in ${browserName}`)
+              .toEqual(true);
+
+            if (rotation % 180 === 0) {
+              expect(state.contentWidth)
+                .withContext(`At ${rotation}° in ${browserName}`)
+                .toEqual("100%");
+              expect(state.contentHeight)
+                .withContext(`At ${rotation}° in ${browserName}`)
+                .toEqual("100%");
+            }
+          }
+
+          const final = await getDrawState();
+          const finalSerialized = await getFirstSerialized(page);
+          expect(finalSerialized.value)
+            .withContext(`Serialized value in ${browserName}`)
+            .toEqual(initialSerialized.value);
+          expect(finalSerialized.rotation)
+            .withContext(`Serialized rotation in ${browserName}`)
+            .toEqual(initialSerialized.rotation);
+          expect(finalSerialized.rect)
+            .withContext(`Serialized rect in ${browserName}`)
+            .toEqual(initialSerialized.rect);
+          for (const name of ["x", "y", "width", "height"]) {
+            expect(Math.abs(final.rect[name] - initial.rect[name]))
+              .withContext(`${name} after a full turn in ${browserName}`)
+              .toBeLessThan(1.5);
+          }
+        })
+      );
+    });
+
     it("must check that the dimensions of a rotated annotations are correct after a font size change", async () => {
       await Promise.all(
         pages.map(async ([browserName, page]) => {
@@ -1987,6 +2146,109 @@ describe("FreeText Editor", () => {
       await closePages(pages);
     });
 
+    it("must display existing rotated annotations while the toolbar mode is NONE", async () => {
+      await Promise.all(
+        pages.map(async ([browserName, page]) => {
+          await page.waitForFunction(() => {
+            const nativeAnnotations = [
+              ...document.querySelectorAll(
+                ".annotationLayer .freeTextAnnotation[data-annotation-id]"
+              ),
+            ];
+            const editorAnnotations = [
+              ...document.querySelectorAll(".canvasWrapper svg.freeText"),
+            ];
+            return (
+              nativeAnnotations.length === 4 && editorAnnotations.length === 4
+            );
+          });
+
+          const getState = () =>
+            page.evaluate(() => {
+              const intersects = (rect, container) =>
+                rect.width > 0 &&
+                rect.height > 0 &&
+                rect.right > container.left &&
+                rect.left < container.right &&
+                rect.bottom > container.top &&
+                rect.top < container.bottom;
+              const wrapper = document.querySelector(".canvasWrapper");
+              const wrapperRect = wrapper.getBoundingClientRect();
+
+              return {
+                mode: window.PDFViewerApplication.pdfViewer
+                  .annotationEditorMode,
+                native: [
+                  ...document.querySelectorAll(
+                    ".annotationLayer .freeTextAnnotation[data-annotation-id]"
+                  ),
+                ].map(element => ({
+                  hidden: element.hidden,
+                  id: element.dataset.annotationId,
+                })),
+                editors: [
+                  ...document.querySelectorAll(".canvasWrapper svg.freeText"),
+                ].map(element => {
+                  const content = element.querySelector(".freeTextContent");
+                  const range = document.createRange();
+                  range.selectNodeContents(content);
+                  return {
+                    contentRotation: element.dataset.contentRotation,
+                    hidden:
+                      element.classList.contains("hidden") ||
+                      getComputedStyle(element).display === "none",
+                    rootIntersectsPage: intersects(
+                      element.getBoundingClientRect(),
+                      wrapperRect
+                    ),
+                    text: content.textContent,
+                    textIntersectsPage: intersects(
+                      range.getBoundingClientRect(),
+                      wrapperRect
+                    ),
+                  };
+                }),
+              };
+            });
+
+          let state = await getState();
+
+          expect(state.mode)
+            .withContext(`Toolbar mode in ${browserName}`)
+            .toEqual(0);
+          expect(state.native.every(({ hidden }) => hidden))
+            .withContext(`Native annotations in ${browserName}`)
+            .toEqual(true);
+          expect(state.editors.every(({ hidden, text }) => !hidden && !!text))
+            .withContext(`Editor projections in ${browserName}`)
+            .toEqual(true);
+
+          for (const rotation of [90, 180, 270, 0]) {
+            await page.evaluate(() => {
+              window.PDFViewerApplication.rotatePages(90);
+            });
+            await page.waitForSelector(
+              `.annotationEditorLayer[data-main-rotation='${rotation}']`
+            );
+            state = await getState();
+            expect(state.editors.length)
+              .withContext(`Projection count at ${rotation}° in ${browserName}`)
+              .toEqual(4);
+            expect(
+              state.editors.every(
+                ({ hidden, rootIntersectsPage, text, textIntersectsPage }) =>
+                  !hidden && rootIntersectsPage && !!text && textIntersectsPage
+              )
+            )
+              .withContext(
+                `Visible editor projections at ${rotation}° in ${browserName}: ${JSON.stringify(state.editors)}`
+              )
+              .toEqual(true);
+          }
+        })
+      );
+    });
+
     it("must open an existing rotated annotation and check that the position are good", async () => {
       await Promise.all(
         pages.map(async ([browserName, page]) => {
@@ -2134,6 +2396,557 @@ describe("FreeText Editor", () => {
                 `In ${browserName}, first pix coords in editor: ${editorFirstPix} and in annotation: ${annotationFirstPix}`
               )
               .toEqual(true);
+          }
+        })
+      );
+    });
+  });
+
+  describe("FreeText (intrinsically rotated page)", () => {
+    let pages;
+
+    beforeEach(async () => {
+      pages = await loadAndWait("rotation.pdf", ".annotationEditorLayer", 100);
+    });
+
+    afterEach(async () => {
+      await closePages(pages);
+    });
+
+    it("must display and select a zero-degree FreeText after reopening a rotated page", async () => {
+      await Promise.all(
+        pages.map(async ([browserName, page]) => {
+          await switchToFreeText(page);
+          const sourcePageSelector = '.page[data-page-number="1"]';
+          const pageSelector = '.page[data-page-number="2"]';
+          await scrollIntoView(page, sourcePageSelector);
+          const sourceLayerSelector = `${sourcePageSelector} .annotationEditorLayer`;
+          const layerRect = await getRect(page, sourceLayerSelector);
+          const editorSelector = getEditorSelector(0);
+          const text = "Visible on an intrinsically rotated page";
+
+          await page.mouse.click(layerRect.x + 100, layerRect.y + 100);
+          await page.waitForSelector(editorSelector, { visible: true });
+          await page.type(`${editorSelector} .internal`, text);
+          await commit(page);
+          const serialized = await getFirstSerialized(page);
+
+          await scrollIntoView(page, pageSelector);
+          await page.waitForFunction(
+            () => window.PDFViewerApplication.page === 2
+          );
+          await page.evaluate(async data => {
+            const pageView =
+              window.PDFViewerApplication.pdfViewer.getPageView(1);
+            const layer = pageView.annotationEditorLayer.annotationEditorLayer;
+            const copyData = {
+              ...data,
+              isCopy: true,
+              pageIndex: 1,
+            };
+            delete copyData.id;
+            const editor = await layer.deserialize(copyData);
+            layer.addOrRebuild(editor);
+          }, serialized);
+          await page.waitForSelector(`${pageSelector} .freeTextEditor`, {
+            visible: true,
+          });
+          await switchToFreeText(page, /* disable = */ true);
+
+          const data = await page.evaluate(async () =>
+            Array.from(
+              await window.PDFViewerApplication.pdfDocument.saveDocument()
+            )
+          );
+          await page.evaluate(async bytes => {
+            await window.PDFViewerApplication.open({
+              data: new Uint8Array(bytes),
+            });
+          }, data);
+
+          await page.waitForSelector(pageSelector);
+          await scrollIntoView(page, pageSelector);
+          await page.waitForFunction(
+            expectedText =>
+              [
+                ...document.querySelectorAll(
+                  '.page[data-page-number="2"] .canvasWrapper svg.freeText .freeTextContent'
+                ),
+              ].some(content => content.textContent === expectedText),
+            {},
+            text
+          );
+          await page.evaluate(expectedText => {
+            const root = [
+              ...document.querySelectorAll(
+                '.page[data-page-number="2"] .canvasWrapper svg.freeText'
+              ),
+            ].find(
+              element =>
+                element.querySelector(".freeTextContent")?.textContent ===
+                expectedText
+            );
+            root.scrollIntoView({ block: "center", inline: "center" });
+          }, text);
+          await page.evaluate(() => new Promise(requestAnimationFrame));
+
+          const state = await page.evaluate(expectedText => {
+            const pageView =
+              window.PDFViewerApplication.pdfViewer.getPageView(1);
+            const root = [
+              ...document.querySelectorAll(
+                '.page[data-page-number="2"] .canvasWrapper svg.freeText'
+              ),
+            ].find(
+              element =>
+                element.querySelector(".freeTextContent")?.textContent ===
+                expectedText
+            );
+            const wrapperRect = root
+              .closest(".canvasWrapper")
+              .getBoundingClientRect();
+            const rootRect = root.getBoundingClientRect();
+            const content = root.querySelector(".freeTextContent");
+            const contentRect = content.getBoundingClientRect();
+            const editor = document.querySelector(
+              '.page[data-page-number="2"] .freeTextEditor'
+            );
+            const editorRect = editor.getBoundingClientRect();
+            const inputRect = editor
+              .querySelector(".internal")
+              .getBoundingClientRect();
+            const measure = editor.querySelector(".freetextMeasure");
+            const hitX =
+              (Math.max(0, rootRect.left) +
+                Math.min(window.innerWidth, rootRect.right)) /
+              2;
+            const hitY =
+              (Math.max(0, rootRect.top) +
+                Math.min(window.innerHeight, rootRect.bottom)) /
+              2;
+            const hitTarget = document.elementFromPoint(hitX, hitY);
+            const intersectionWidth = Math.max(
+              0,
+              Math.min(rootRect.right, editorRect.right) -
+                Math.max(rootRect.left, editorRect.left)
+            );
+            const intersectionHeight = Math.max(
+              0,
+              Math.min(rootRect.bottom, editorRect.bottom) -
+                Math.max(rootRect.top, editorRect.top)
+            );
+            const range = document.createRange();
+            range.selectNodeContents(content);
+            const textRect = range.getBoundingClientRect();
+            const getFirstCharacterRect = element => {
+              const textNode = element.firstChild;
+              if (!textNode?.textContent) {
+                return null;
+              }
+              const firstCharacter = document.createRange();
+              firstCharacter.setStart(textNode, 0);
+              firstCharacter.setEnd(textNode, 1);
+              const rect = firstCharacter.getBoundingClientRect();
+              return {
+                left: rect.left,
+                top: rect.top,
+                width: rect.width,
+                height: rect.height,
+                centerX: rect.left + rect.width / 2,
+                centerY: rect.top + rect.height / 2,
+              };
+            };
+            return {
+              layerRotation: editor.parentElement.dataset.mainRotation,
+              editorRotation: editor.dataset.editorRotation,
+              contentRotation: root.dataset.contentRotation,
+              hasLegacyRotationClass: [...editor.classList].some(className =>
+                className.startsWith("rotation-")
+              ),
+              contentHeight: content.style.height,
+              contentWidth: content.style.width,
+              hidden:
+                root.classList.contains("hidden") ||
+                getComputedStyle(root).display === "none",
+              pageRotation: pageView.viewport.rotation,
+              viewport: {
+                width: pageView.viewport.width,
+                height: pageView.viewport.height,
+                rawDims: pageView.viewport.rawDims,
+              },
+              wrapperRect: {
+                width: wrapperRect.width,
+                height: wrapperRect.height,
+              },
+              rootStyle: {
+                width: root.style.width,
+                height: root.style.height,
+              },
+              intersects:
+                rootRect.width > 0 &&
+                rootRect.height > 0 &&
+                rootRect.right > wrapperRect.left &&
+                rootRect.left < wrapperRect.right &&
+                rootRect.bottom > wrapperRect.top &&
+                rootRect.top < wrapperRect.bottom,
+              textIntersectsRoot:
+                textRect.width > 0 &&
+                textRect.height > 0 &&
+                textRect.right > rootRect.left &&
+                textRect.left < rootRect.right &&
+                textRect.bottom > rootRect.top &&
+                textRect.top < rootRect.bottom,
+              contentFitsRoot:
+                Math.abs(contentRect.left - rootRect.left) < 1.5 &&
+                Math.abs(contentRect.top - rootRect.top) < 1.5 &&
+                Math.abs(contentRect.width - rootRect.width) < 1.5 &&
+                Math.abs(contentRect.height - rootRect.height) < 1.5,
+              contentRect: {
+                left: contentRect.left,
+                top: contentRect.top,
+                width: contentRect.width,
+                height: contentRect.height,
+              },
+              rootRect: {
+                left: rootRect.left,
+                top: rootRect.top,
+                width: rootRect.width,
+                height: rootRect.height,
+              },
+              editorRect: {
+                left: editorRect.left,
+                top: editorRect.top,
+                width: editorRect.width,
+                height: editorRect.height,
+              },
+              inputRect: {
+                left: inputRect.left,
+                top: inputRect.top,
+                width: inputRect.width,
+                height: inputRect.height,
+              },
+              firstCharacterRect: getFirstCharacterRect(content),
+              measureFirstCharacterRect: getFirstCharacterRect(measure),
+              hitTarget: {
+                className:
+                  hitTarget?.className?.baseVal || hitTarget?.className,
+                editorId: hitTarget?.closest?.(".freeTextEditor")?.id,
+                id: hitTarget?.id,
+                tagName: hitTarget?.tagName,
+              },
+              hitPoint: { x: hitX, y: hitY },
+              alignmentCoverage:
+                (intersectionWidth * intersectionHeight) /
+                Math.min(
+                  rootRect.width * rootRect.height,
+                  editorRect.width * editorRect.height
+                ),
+            };
+          }, text);
+
+          expect(state.pageRotation)
+            .withContext(`Page rotation in ${browserName}`)
+            .toEqual(90);
+          expect(state.layerRotation)
+            .withContext(`Editor layer rotation in ${browserName}`)
+            .toEqual("90");
+          expect(state.editorRotation)
+            .withContext(`Annotation rotation in ${browserName}`)
+            .toEqual("0");
+          expect(state.contentRotation)
+            .withContext(`DrawLayer content rotation in ${browserName}`)
+            .toEqual("90");
+          expect(state.hasLegacyRotationClass)
+            .withContext(`Legacy FreeText rotation class in ${browserName}`)
+            .toEqual(false);
+          expect(state.hidden)
+            .withContext(`Projection visibility in ${browserName}`)
+            .toEqual(false);
+          expect(state.intersects)
+            .withContext(
+              `Projection geometry in ${browserName}: ${JSON.stringify(state)}`
+            )
+            .toEqual(true);
+          expect(state.textIntersectsRoot)
+            .withContext(
+              `Text clipping in ${browserName}: ${JSON.stringify(state)}`
+            )
+            .toEqual(true);
+          expect(state.contentFitsRoot)
+            .withContext(
+              `FreeText content geometry in ${browserName}: ${JSON.stringify(state)}`
+            )
+            .toEqual(true);
+          expect(state.alignmentCoverage)
+            .withContext(
+              `Editor/SVG alignment in ${browserName}: ${JSON.stringify(state)}`
+            )
+            .toBeGreaterThan(0.85);
+          for (const name of ["left", "top", "width", "height"]) {
+            expect(Math.abs(state.inputRect[name] - state.editorRect[name]))
+              .withContext(
+                `Textarea/editor ${name} alignment in ${browserName}: ${JSON.stringify(state)}`
+              )
+              .toBeLessThan(2.5);
+          }
+          expect(state.firstCharacterRect).toBeTruthy();
+          expect(state.measureFirstCharacterRect).toBeTruthy();
+          for (const name of ["centerX", "centerY"]) {
+            expect(
+              Math.abs(
+                state.firstCharacterRect[name] -
+                  state.measureFirstCharacterRect[name]
+              )
+            )
+              .withContext(
+                `Display/edit ${name} text anchor in ${browserName}: ${JSON.stringify(state)}`
+              )
+              .toBeLessThan(6);
+          }
+          expect(state.hitTarget.editorId)
+            .withContext(
+              `FreeText DOM hit target in ${browserName}: ${JSON.stringify(state)}`
+            )
+            .toBeTruthy();
+
+          await page.mouse.click(state.hitPoint.x, state.hitPoint.y);
+          await page.evaluate(
+            () => new Promise(resolve => setTimeout(resolve, 100))
+          );
+          const selected = await page.evaluate(
+            () =>
+              !!document.querySelector(
+                '.page[data-page-number="2"] .freeTextEditor.selectedEditor'
+              )
+          );
+          expect(selected)
+            .withContext(
+              `FreeText hit target in ${browserName}: ${JSON.stringify(state)}`
+            )
+            .toEqual(true);
+
+          await page.mouse.click(state.hitPoint.x, state.hitPoint.y, {
+            clickCount: 2,
+          });
+          await page.waitForSelector(
+            '.page[data-page-number="2"] .freeTextEditor.editing'
+          );
+          await page.waitForFunction(
+            expectedText => {
+              const root = [
+                ...document.querySelectorAll(
+                  '.page[data-page-number="2"] .canvasWrapper svg.freeText'
+                ),
+              ].find(
+                element =>
+                  element.querySelector(".freeTextContent")?.textContent ===
+                  expectedText
+              );
+              return root?.classList.contains("hidden");
+            },
+            {},
+            text
+          );
+          const editing = await page.evaluate(expectedText => {
+            const input = document.querySelector(
+              '.page[data-page-number="2"] .freeTextEditor.editing .internal'
+            );
+            return {
+              readOnly: input?.readOnly,
+              value: input?.value,
+            };
+          }, text);
+          expect(editing)
+            .withContext(`FreeText editing state in ${browserName}`)
+            .toEqual({ readOnly: false, value: text });
+
+          await commit(page);
+          for (const expectedRotation of [180, 270, 0, 90]) {
+            await page.evaluate(() => {
+              window.PDFViewerApplication.rotatePages(90);
+            });
+            await page.waitForSelector(
+              `${pageSelector} .annotationEditorLayer[data-main-rotation='${expectedRotation}']`
+            );
+            await page.waitForFunction(
+              (expectedText, rotation) => {
+                const root = [
+                  ...document.querySelectorAll(
+                    '.page[data-page-number="2"] .canvasWrapper svg.freeText'
+                  ),
+                ].find(
+                  element =>
+                    element.querySelector(".freeTextContent")?.textContent ===
+                    expectedText
+                );
+                return (
+                  !root?.classList.contains("hidden") &&
+                  root?.dataset.contentRotation === `${rotation}`
+                );
+              },
+              {},
+              text,
+              expectedRotation
+            );
+            await page.evaluate(expectedText => {
+              const root = [
+                ...document.querySelectorAll(
+                  '.page[data-page-number="2"] .canvasWrapper svg.freeText'
+                ),
+              ].find(
+                element =>
+                  element.querySelector(".freeTextContent")?.textContent ===
+                  expectedText
+              );
+              root.scrollIntoView({ block: "center", inline: "center" });
+            }, text);
+            await page.evaluate(() => new Promise(requestAnimationFrame));
+
+            const rotatedState = await page.evaluate(expectedText => {
+              const editor = document.querySelector(
+                '.page[data-page-number="2"] .freeTextEditor'
+              );
+              const root = [
+                ...document.querySelectorAll(
+                  '.page[data-page-number="2"] .canvasWrapper svg.freeText'
+                ),
+              ].find(
+                element =>
+                  element.querySelector(".freeTextContent")?.textContent ===
+                  expectedText
+              );
+              const content = root.querySelector(".freeTextContent");
+              const measure = editor.querySelector(".freetextMeasure");
+              const editorRect = editor.getBoundingClientRect();
+              const rootRect = root.getBoundingClientRect();
+              const intersectionWidth = Math.max(
+                0,
+                Math.min(rootRect.right, editorRect.right) -
+                  Math.max(rootRect.left, editorRect.left)
+              );
+              const intersectionHeight = Math.max(
+                0,
+                Math.min(rootRect.bottom, editorRect.bottom) -
+                  Math.max(rootRect.top, editorRect.top)
+              );
+              const firstCharacterCenter = element => {
+                const textNode = element.firstChild;
+                const range = document.createRange();
+                range.setStart(textNode, 0);
+                range.setEnd(textNode, 1);
+                const rect = range.getBoundingClientRect();
+                return {
+                  x: rect.left + rect.width / 2,
+                  y: rect.top + rect.height / 2,
+                };
+              };
+              const displayAnchor = firstCharacterCenter(content);
+              const editAnchor = firstCharacterCenter(measure);
+              const hitPoint = {
+                x: rootRect.left + rootRect.width / 2,
+                y: rootRect.top + rootRect.height / 2,
+              };
+              const hitTarget = document.elementFromPoint(
+                hitPoint.x,
+                hitPoint.y
+              );
+              return {
+                alignmentCoverage:
+                  (intersectionWidth * intersectionHeight) /
+                  Math.min(
+                    rootRect.width * rootRect.height,
+                    editorRect.width * editorRect.height
+                  ),
+                anchorDelta: {
+                  x: Math.abs(displayAnchor.x - editAnchor.x),
+                  y: Math.abs(displayAnchor.y - editAnchor.y),
+                },
+                contentRotation: root.dataset.contentRotation,
+                editorRotation: editor.dataset.editorRotation,
+                hasLegacyRotationClass: [...editor.classList].some(className =>
+                  className.startsWith("rotation-")
+                ),
+                hitEditorId: hitTarget?.closest?.(".freeTextEditor")?.id,
+                hitPoint,
+                layerRotation: editor.parentElement.dataset.mainRotation,
+              };
+            }, text);
+
+            expect(rotatedState.layerRotation)
+              .withContext(
+                `Layer rotation at ${expectedRotation}° in ${browserName}`
+              )
+              .toEqual(`${expectedRotation}`);
+            expect(rotatedState.editorRotation)
+              .withContext(
+                `Editor rotation at ${expectedRotation}° in ${browserName}`
+              )
+              .toEqual("0");
+            expect(rotatedState.contentRotation)
+              .withContext(
+                `Content rotation at ${expectedRotation}° in ${browserName}`
+              )
+              .toEqual(`${expectedRotation}`);
+            expect(rotatedState.hasLegacyRotationClass).toEqual(false);
+            expect(rotatedState.alignmentCoverage)
+              .withContext(
+                `Layer alignment at ${expectedRotation}° in ${browserName}: ${JSON.stringify(rotatedState)}`
+              )
+              .toBeGreaterThan(0.85);
+            expect(rotatedState.anchorDelta.x)
+              .withContext(
+                `Text x anchor at ${expectedRotation}° in ${browserName}: ${JSON.stringify(rotatedState)}`
+              )
+              .toBeLessThan(6);
+            expect(rotatedState.anchorDelta.y)
+              .withContext(
+                `Text y anchor at ${expectedRotation}° in ${browserName}: ${JSON.stringify(rotatedState)}`
+              )
+              .toBeLessThan(6);
+            expect(rotatedState.hitEditorId)
+              .withContext(
+                `Hit target at ${expectedRotation}° in ${browserName}: ${JSON.stringify(rotatedState)}`
+              )
+              .toBeTruthy();
+
+            await page.mouse.click(
+              rotatedState.hitPoint.x,
+              rotatedState.hitPoint.y,
+              { clickCount: 2 }
+            );
+            await page.waitForSelector(
+              `${pageSelector} .freeTextEditor.editing`
+            );
+            const rotatedEditingState = await page.evaluate(expectedText => {
+              const editor = document.querySelector(
+                '.page[data-page-number="2"] .freeTextEditor.editing'
+              );
+              const input = editor.querySelector(".internal");
+              const root = [
+                ...document.querySelectorAll(
+                  '.page[data-page-number="2"] .canvasWrapper svg.freeText'
+                ),
+              ].find(
+                element =>
+                  element.querySelector(".freeTextContent")?.textContent ===
+                  expectedText
+              );
+              return {
+                inputOpacity: getComputedStyle(input).opacity,
+                readOnly: input.readOnly,
+                svgHidden: root.classList.contains("hidden"),
+                value: input.value,
+              };
+            }, text);
+            expect(rotatedEditingState)
+              .withContext(`Editing at ${expectedRotation}° in ${browserName}`)
+              .toEqual({
+                inputOpacity: "1",
+                readOnly: false,
+                svgHidden: true,
+                value: text,
+              });
+            await commit(page);
           }
         })
       );

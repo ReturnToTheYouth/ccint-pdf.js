@@ -96,6 +96,8 @@ import { XfaLayerBuilder } from "./xfa_layer_builder.js";
  *   rendering. The default value is `false`.
  * @property {boolean} [enableAutoLinking] - Enable creation of hyperlinks from
  *   text that look like URLs. The default value is `true`.
+ * @property {boolean} [isEditing] - Whether the page must initially be
+ *   rendered for annotation editing. The default value is `false`.
  */
 
 const DEFAULT_LAYER_PROPERTIES =
@@ -189,6 +191,7 @@ class PDFPageView extends BasePDFPageView {
       options.maxCanvasPixels ?? AppOptions.get("maxCanvasPixels");
     this.maxCanvasDim = options.maxCanvasDim || AppOptions.get("maxCanvasDim");
     this.#enableAutoLinking = options.enableAutoLinking !== false;
+    this.#isEditing = options.isEditing === true;
 
     this.l10n = options.l10n;
     if (typeof PDFJSDev === "undefined" || PDFJSDev.test("GENERIC")) {
@@ -608,13 +611,16 @@ class PDFPageView extends BasePDFPageView {
   }
 
   toggleEditingMode(isEditing) {
+    if (this.#isEditing === isEditing) {
+      return false;
+    }
     // The page can be invisible, consequently there's no annotation layer and
     // we can't know if there are editable annotations.
     // So to avoid any issue when the page is rendered the #isEditing flag must
     // be set.
     this.#isEditing = isEditing;
     if (!this.hasEditableAnnotations()) {
-      return;
+      return false;
     }
     this.reset({
       keepAnnotationLayer: true,
@@ -623,6 +629,7 @@ class PDFPageView extends BasePDFPageView {
       keepTextLayer: true,
       keepCanvasWrapper: true,
     });
+    return true;
   }
 
   updateVisibleArea(visibleArea) {
@@ -986,6 +993,7 @@ class PDFPageView extends BasePDFPageView {
         annotationCanvasMap: this._annotationCanvasMap,
         accessibilityManager: this._accessibilityManager,
         annotationEditorUIManager,
+        hideEditableAnnotations: this.#isEditing,
         onAppend: annotationLayerDiv => {
           this.#addLayer(annotationLayerDiv, "annotationLayer");
         },
@@ -1089,6 +1097,7 @@ class PDFPageView extends BasePDFPageView {
         annotationLayer: this.annotationLayer?.annotationLayer,
         textLayer: this.textLayer,
         drawLayer: this.drawLayer.getDrawLayer(),
+        keepEditableAnnotationsHidden: this.#isEditing,
         onAppend: annotationEditorLayerDiv => {
           this.#addLayer(annotationEditorLayerDiv, "annotationEditorLayer");
         },

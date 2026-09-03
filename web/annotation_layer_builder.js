@@ -51,6 +51,9 @@ import { PresentationModeState } from "./ui_utils.js";
  * @property {Map<string, HTMLCanvasElement>} [annotationCanvasMap]
  * @property {TextAccessibilityManager} [accessibilityManager]
  * @property {AnnotationEditorUIManager} [annotationEditorUIManager]
+ * @property {boolean} [hideEditableAnnotations] - Hide editable annotation
+ *   elements before appending them when an editor layer will display them.
+ *   The default value is `false`.
  * @property {function} [onAppend]
  */
 
@@ -95,6 +98,7 @@ class AnnotationLayerBuilder {
     annotationCanvasMap = null,
     accessibilityManager = null,
     annotationEditorUIManager = null,
+    hideEditableAnnotations = false,
     onAppend = null,
   }) {
     this.pdfPage = pdfPage;
@@ -109,6 +113,7 @@ class AnnotationLayerBuilder {
     this._annotationCanvasMap = annotationCanvasMap;
     this._accessibilityManager = accessibilityManager;
     this._annotationEditorUIManager = annotationEditorUIManager;
+    this._hideEditableAnnotations = hideEditableAnnotations;
     this.#onAppend = onAppend;
 
     this.annotationLayer = null;
@@ -204,6 +209,7 @@ class AnnotationLayerBuilder {
       accessibilityManager: this._accessibilityManager,
       annotationCanvasMap: this._annotationCanvasMap,
       annotationEditorUIManager: this._annotationEditorUIManager,
+      hideEditableAnnotations: this._hideEditableAnnotations,
       page: this.pdfPage,
       viewport: viewport.clone({ dontFlip: true }),
       structTreeLayer,

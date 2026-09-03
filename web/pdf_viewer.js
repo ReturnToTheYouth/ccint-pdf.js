@@ -994,6 +994,11 @@ class PDFViewer {
           );
         }
 
+        // This viewer keeps the annotation editor layer active even while the
+        // toolbar mode is NONE. Only opt into that rendering strategy when an
+        // editor manager was actually created (permissions may disable it).
+        const isEditing = !!this.#annotationEditorUIManager;
+
         for (let pageNum = 1; pageNum <= pagesCount; ++pageNum) {
           const pageView = new PDFPageView({
             container: viewerElement,
@@ -1014,6 +1019,7 @@ class PDFViewer {
             layerProperties: this._layerProperties,
             enableHWA: this.#enableHWA,
             enableAutoLinking: this.#enableAutoLinking,
+            isEditing,
           });
           this._pages.push(pageView);
         }
@@ -1736,14 +1742,17 @@ class PDFViewer {
     });
   }
 
-  // 切换到“可编辑批注模式”时，筛选出当前可见页面中含有可编辑批注的页面，并刷新这些页面。
-  #switchToEditAnnotationMode() {
+  // Refresh only visible pages whose editing state actually caused a reset.
+  #switchToEditAnnotationMode(resetPageIds) {
+    if (resetPageIds.size === 0) {
+      return null;
+    }
     const visible = this._getVisiblePages();
     const pagesToRefresh = [];
     const { ids, views } = visible;
     for (const page of views) {
       const { view } = page;
-      if (!view.hasEditableAnnotations()) {
+      if (!resetPageIds.has(view.id)) {
         ids.delete(view.id);
         continue;
       }
@@ -2454,12 +2463,13 @@ class PDFViewer {
       if (!isEditing) {
         this.pdfDocument.annotationStorage.resetModifiedIds();
       }
+      const resetPageIds = new Set();
       for (const pageView of this._pages) {
-        pageView.toggleEditingMode(isEditing);
+        if (pageView.toggleEditingMode(isEditing)) {
+          resetPageIds.add(pageView.id);
+        }
       }
-      // We must call #switchToEditAnnotationMode unconditionally to ensure that
-      // page is rendered if it's useful or not.
-      const idsToRefresh = this.#switchToEditAnnotationMode();
+      const idsToRefresh = this.#switchToEditAnnotationMode(resetPageIds);
       if (isEditing && idsToRefresh) {
         // We're editing so we must switch to editing mode when the rendering is
         // done.

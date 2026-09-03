@@ -3105,6 +3105,8 @@ class FileAttachmentAnnotationElement extends AnnotationElement {
  * @property {Map<string, HTMLCanvasElement>} [annotationCanvasMap]
  * @property {TextAccessibilityManager} [accessibilityManager]
  * @property {AnnotationEditorUIManager} [annotationEditorUIManager]
+ * @property {boolean} [hideEditableAnnotations] - Hide editable annotation
+ *   elements before they are appended. The default value is `false`.
  * @property {StructTreeLayerBuilder} [structTreeLayer]
  */
 
@@ -3118,6 +3120,8 @@ class AnnotationLayer {
 
   #editableAnnotations = new Map();
 
+  #hideEditableAnnotations = false;
+
   #structTreeLayer = null;
 
   constructor({
@@ -3125,6 +3129,7 @@ class AnnotationLayer {
     accessibilityManager,
     annotationCanvasMap,
     annotationEditorUIManager,
+    hideEditableAnnotations = false,
     page,
     viewport,
     structTreeLayer,
@@ -3137,6 +3142,7 @@ class AnnotationLayer {
     this.viewport = viewport;
     this.zIndex = 0;
     this._annotationEditorUIManager = annotationEditorUIManager;
+    this.#hideEditableAnnotations = hideEditableAnnotations;
 
     if (typeof PDFJSDev !== "undefined" && PDFJSDev.test("TESTING")) {
       // For testing purposes.
@@ -3239,6 +3245,12 @@ class AnnotationLayer {
       const rendered = element.render();
       if (data.hidden) {
         rendered.style.visibility = "hidden";
+      }
+      if (element._isEditable && this.#hideEditableAnnotations) {
+        // Avoid one frame where both the native annotation and its editor
+        // projection are visible. AnnotationEditorLayer restores this element
+        // if taking ownership fails.
+        element.hide();
       }
       await this.#appendElement(rendered, data.id);
 

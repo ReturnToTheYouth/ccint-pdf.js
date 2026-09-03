@@ -56,6 +56,8 @@ import { UnderlineEditor } from "./underline.js";
  * @property {HTMLDivElement} [textLayer]
  * @property {DrawLayer} drawLayer
  * @property {PageViewport} viewport
+ * @property {boolean} [keepEditableAnnotationsHidden]
+ * @property {function} [onEditorsReady]
  */
 
 /**
@@ -86,6 +88,10 @@ class AnnotationEditorLayer {
   #isDisabling = false;
 
   #isEnabling = false;
+
+  #keepEditableAnnotationsHidden = false;
+
+  #onEditorsReady = null;
 
   #drawingAC = null;
 
@@ -126,6 +132,8 @@ class AnnotationEditorLayer {
     textLayer,
     viewport,
     l10n,
+    keepEditableAnnotationsHidden = false,
+    onEditorsReady = null,
   }) {
     const editorTypes = [...AnnotationEditorLayer.#editorTypes.values()];
     if (!AnnotationEditorLayer._initialized) {
@@ -144,6 +152,8 @@ class AnnotationEditorLayer {
     this.viewport = viewport;
     this.#textLayer = textLayer;
     this.drawLayer = drawLayer;
+    this.#keepEditableAnnotationsHidden = keepEditableAnnotationsHidden;
+    this.#onEditorsReady = onEditorsReady;
     this._structTree = structTreeLayer;
     this.onTextLayerPointerDown = this._onTextLayerPointerDown.bind(this);
 
@@ -320,40 +330,99 @@ class AnnotationEditorLayer {
    */
   async enable() {
     this.#isEnabling = true;
-    this.div.tabIndex = 0;
-    this.togglePointerEvents(true);
-    const annotationElementIds = new Set();
-    for (const editor of this.#editors.values()) {
-      editor.enableEditing();
-      editor.show(true);
-      if (editor.annotationElementId) {
-        this.#uiManager.removeChangedExistingAnnotation(editor);
-        annotationElementIds.add(editor.annotationElementId);
+    try {
+      this.div.tabIndex = 0;
+      this.togglePointerEvents(true);
+      const annotationElementIds = new Set();
+      for (const editor of this.#editors.values()) {
+        try {
+          editor.enableEditing();
+          editor.show(true);
+          if (editor.annotationElementId) {
+            this.#uiManager.removeChangedExistingAnnotation(editor);
+            annotationElementIds.add(editor.annotationElementId);
+          }
+        } catch (reason) {
+          this.#discardFailedEditor(editor);
+          console.warn(
+            `Unable to re-enable annotation editor "${editor.id}".`,
+            reason
+          );
+        }
       }
-    }
 
-    if (!this.#annotationLayer) {
+      if (!this.#annotationLayer) {
+        return;
+      }
+      const editables = this.#annotationLayer.getEditableAnnotations();
+      for (const editable of editables) {
+        // The element must be hidden whatever its state is.
+        editable.hide();
+        if (this.#uiManager.isDeletedAnnotationElement(editable.data.id)) {
+          continue;
+        }
+        if (annotationElementIds.has(editable.data.id)) {
+          continue;
+        }
+
+        let editor = null;
+        try {
+          editor = await this.deserialize(editable);
+          if (!editor) {
+            editable.show();
+            continue;
+          }
+          this.addOrRebuild(editor);
+          editor.enableEditing();
+          annotationElementIds.add(editable.data.id);
+        } catch (reason) {
+          try {
+            this.#discardFailedEditor(editor);
+          } catch (cleanupReason) {
+            console.warn(
+              `Unable to clean up editable annotation "${editable.data.id}".`,
+              cleanupReason
+            );
+          } finally {
+            editable.show();
+          }
+          console.warn(
+            `Unable to initialize editable annotation "${editable.data.id}".`,
+            reason
+          );
+        }
+      }
+    } finally {
       this.#isEnabling = false;
+      this.#onEditorsReady?.();
+    }
+  }
+
+  #discardFailedEditor(editor) {
+    if (!editor) {
       return;
     }
-    const editables = this.#annotationLayer.getEditableAnnotations();
-    for (const editable of editables) {
-      // The element must be hidden whatever its state is.
-      editable.hide();
-      if (this.#uiManager.isDeletedAnnotationElement(editable.data.id)) {
-        continue;
-      }
-      if (annotationElementIds.has(editable.data.id)) {
-        continue;
-      }
-      const editor = await this.deserialize(editable);
-      if (!editor) {
-        continue;
-      }
-      this.addOrRebuild(editor);
-      editor.enableEditing();
+    this.#editors.delete(editor.id);
+    try {
+      this.#accessibilityManager?.removePointerInTextLayer(editor.contentDiv);
+    } catch (reason) {
+      console.warn("Unable to clean up editor accessibility data.", reason);
     }
-    this.#isEnabling = false;
+    try {
+      // FreeTextEditor removes its DrawLayer projection when losing its
+      // parent. Do this before touching the UI-manager bookkeeping so that a
+      // cleanup failure cannot leave a duplicate SVG behind.
+      editor.setParent(null);
+    } catch (reason) {
+      console.warn("Unable to detach a failed annotation editor.", reason);
+    }
+    try {
+      this.#uiManager.removeFailedEditor(editor);
+    } catch (reason) {
+      console.warn("Unable to remove a failed annotation editor.", reason);
+    }
+    editor.isAttachedToDOM = false;
+    editor.div?.remove();
   }
 
   /**
@@ -377,7 +446,9 @@ class AnnotationEditorLayer {
       } else {
         resetAnnotations.set(editor.annotationElementId, editor);
       }
-      this.getEditableAnnotation(editor.annotationElementId)?.show();
+      if (!this.#keepEditableAnnotationsHidden) {
+        this.getEditableAnnotation(editor.annotationElementId)?.show();
+      }
       editor.remove();
     }
     if (this.#annotationLayer) {
@@ -392,7 +463,9 @@ class AnnotationEditorLayer {
         if (editor) {
           editor.resetAnnotationElement(editable);
           editor.show(false);
-          editable.show();
+          if (!this.#keepEditableAnnotationsHidden) {
+            editable.show();
+          }
           continue;
         }
 
@@ -404,7 +477,9 @@ class AnnotationEditorLayer {
             editor.show(false);
           }
         }
-        editable.show();
+        if (!this.#keepEditableAnnotationsHidden) {
+          editable.show();
+        }
       }
     }
 

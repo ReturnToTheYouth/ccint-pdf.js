@@ -797,8 +797,8 @@ class FreeTextEditor extends AnnotationEditor {
   }
 
   /** @inheritdoc */
-  rotate(_angle) {
-    this.#syncDrawLayer();
+  rotate(angle) {
+    this.#syncDrawLayer(angle);
   }
 
   /** @inheritdoc */
@@ -827,7 +827,7 @@ class FreeTextEditor extends AnnotationEditor {
     if (this.div === null) {
       return;
     }
-    this.rotate(this.pageRotation);
+    this.rotate(this.parent.viewport.rotation);
     if (!this.isAttachedToDOM) {
       // At some point this editor was removed and we're rebuilting it,
       // hence we must add it to its parent.
@@ -1182,18 +1182,20 @@ class FreeTextEditor extends AnnotationEditor {
     }
   }
 
-  #getDrawLayerGeometry() {
+  #getDrawLayerGeometry(
+    viewportRotation = this.parent?.viewport.rotation ?? this.parentRotation
+  ) {
     const {
       x,
       y,
       width,
       height,
       rotation,
-      parentRotation,
       parentDimensions: [pW, pH],
     } = this;
+    viewportRotation = ((viewportRotation % 360) + 360) % 360;
     let bbox;
-    switch ((rotation * 4 + parentRotation) / 90) {
+    switch ((rotation * 4 + viewportRotation) / 90) {
       case 1:
         bbox = [1 - y - height, x, height, width];
         break;
@@ -1273,11 +1275,18 @@ class FreeTextEditor extends AnnotationEditor {
         bbox = [x, y, width, height];
         break;
     }
-    const contentRotation = (parentRotation - rotation + 360) % 360;
+    const contentRotation = (viewportRotation - rotation + 360) % 360;
     let contentSize = { width: 100, height: 100 };
     if (contentRotation % 180 !== 0) {
-      const rootWidth = bbox[2] * pW;
-      const rootHeight = bbox[3] * pH;
+      // bbox is relative to CanvasWrapper. Its dimensions are swapped when
+      // the viewport is rotated by an odd multiple of 90 degrees, while pW
+      // and pH always describe the unrotated page. Using the latter directly
+      // produces an oversized content box which is then clipped by the SVG
+      // foreignObject on intrinsically rotated pages.
+      const [canvasWidth, canvasHeight] =
+        viewportRotation % 180 === 0 ? [pW, pH] : [pH, pW];
+      const rootWidth = bbox[2] * canvasWidth;
+      const rootHeight = bbox[3] * canvasHeight;
       if (rootWidth > 0 && rootHeight > 0) {
         // The root bbox is already rotated into CanvasWrapper coordinates.
         // Rotate the XHTML content inside it using the opposite dimensions.
@@ -1315,14 +1324,14 @@ class FreeTextEditor extends AnnotationEditor {
     };
   }
 
-  #syncDrawLayer() {
+  #syncDrawLayer(viewportRotation) {
     const drawLayer = this.parent?.drawLayer || this.#drawLayer;
     if (!drawLayer || !this.#content || !this.width || !this.height) {
       return;
     }
     this.#drawLayer = drawLayer;
     const properties = {
-      ...this.#getDrawLayerGeometry(),
+      ...this.#getDrawLayerGeometry(viewportRotation),
       value: this.#content,
       style: this.#getDrawLayerStyle(),
       hidden: this.isInEditMode() || !this.#isShown,

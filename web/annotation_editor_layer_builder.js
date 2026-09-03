@@ -39,6 +39,8 @@ import { GenericL10n } from "web-null_l10n";
  * @property {AnnotationLayer} [annotationLayer]
  * @property {TextLayer} [textLayer]
  * @property {DrawLayer} [drawLayer]
+ * @property {boolean} [keepEditableAnnotationsHidden] - Keep native editable
+ *   annotations hidden while the editor layer owns their display.
  * @property {function} [onAppend]
  */
 
@@ -54,6 +56,10 @@ class AnnotationEditorLayerBuilder {
   #drawLayer = null;
 
   #onAppend = null;
+
+  #keepEditableAnnotationsHidden = false;
+
+  #isExternallyHidden = false;
 
   #structTreeLayer = null;
 
@@ -78,6 +84,8 @@ class AnnotationEditorLayerBuilder {
     this.#annotationLayer = options.annotationLayer || null;
     this.#textLayer = options.textLayer || null;
     this.#drawLayer = options.drawLayer || null;
+    this.#keepEditableAnnotationsHidden =
+      options.keepEditableAnnotationsHidden === true;
     this.#onAppend = options.onAppend || null;
     this.#structTreeLayer = options.structTreeLayer || null;
   }
@@ -119,6 +127,8 @@ class AnnotationEditorLayerBuilder {
       annotationLayer: this.#annotationLayer,
       textLayer: this.#textLayer,
       drawLayer: this.#drawLayer,
+      keepEditableAnnotationsHidden: this.#keepEditableAnnotationsHidden,
+      onEditorsReady: () => this.#showIfReady(),
     });
 
     const parameters = {
@@ -145,12 +155,24 @@ class AnnotationEditorLayerBuilder {
     if (!this.div) {
       return;
     }
+    this.#isExternallyHidden = true;
     this.annotationEditorLayer.pause(/* on */ true);
     this.div.hidden = true;
   }
 
   show() {
-    if (!this.div || this.annotationEditorLayer.isInvisible) {
+    this.#isExternallyHidden = false;
+    this.#showIfReady();
+  }
+
+  #showIfReady() {
+    if (
+      this._cancelled ||
+      this.#isExternallyHidden ||
+      !this.div ||
+      !this.annotationEditorLayer ||
+      this.annotationEditorLayer.isInvisible
+    ) {
       return;
     }
     this.div.hidden = false;

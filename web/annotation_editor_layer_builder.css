@@ -634,18 +634,6 @@
   user-select: auto;
 }
 
-.annotationEditorLayer .freeTextEditor.rotation-90 {
-  transform: rotate(270deg);
-}
-
-.annotationEditorLayer .freeTextEditor.rotation-270 {
-  transform: rotate(90deg);
-}
-
-.annotationEditorLayer .freeTextEditor.rotation-180 {
-  transform: rotate(180deg);
-}
-
 .annotationEditorLayer .inkEditor {
   width: 100%;
   height: 100%;

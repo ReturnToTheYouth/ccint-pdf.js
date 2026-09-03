@@ -680,7 +680,12 @@ class AnnotationEditorUIManager {
 
   #idManager = new IdManager();
 
-  #isEnabled = false;
+  // Keep the editor layers enabled even when the toolbar mode is NONE. The
+  // viewer can choose to hide native editable annotations from the first
+  // render, so those annotations must be deserialized into editors as soon as
+  // their layer is attached; otherwise both the native annotation and its
+  // editor projection stay hidden until the user selects an editing tool.
+  #isEnabled = true;
 
   #isPageConstrainedDragging = false;
 
@@ -2218,6 +2223,22 @@ class AnnotationEditorUIManager {
     ) {
       this.#annotationStorage?.remove(editor.id);
     }
+  }
+
+  /**
+   * Roll back an editor which failed while being attached. Unlike
+   * `removeEditor`, this method must not depend on a fully-created DOM node.
+   * @param {AnnotationEditor} editor
+   */
+  removeFailedEditor(editor) {
+    this.#allEditors.delete(editor.id);
+    if (editor.annotationElementId) {
+      this.#missingCanvases?.delete(editor.annotationElementId);
+    }
+    if (this.#selectedEditors.has(editor)) {
+      this.unselect(editor);
+    }
+    this.#annotationStorage?.remove(editor.id);
   }
 
   /**
