@@ -378,10 +378,11 @@ class PDFPageView extends BasePDFPageView {
     });
   }
 
-  async #renderAnnotationLayer() {
+  async #renderAnnotationLayer(textLayerPromise = null) {
+    const { annotationLayer, textLayer } = this;
     let error = null;
     try {
-      await this.annotationLayer.render({
+      await annotationLayer.render({
         viewport: this.viewport,
         intent: "display",
         structTreeLayer: this.structTreeLayer,
@@ -391,6 +392,9 @@ class PDFPageView extends BasePDFPageView {
       error = ex;
     } finally {
       this.#dispatchLayerRendered("annotationlayerrendered", error);
+    }
+    if (this.#enableAutoLinking && textLayerPromise) {
+      this.#injectLinkAnnotations(textLayerPromise, annotationLayer, textLayer);
     }
   }
 
@@ -504,15 +508,18 @@ class PDFPageView extends BasePDFPageView {
     this._textHighlighter.enable();
   }
 
-  async #injectLinkAnnotations(textLayerPromise) {
+  async #injectLinkAnnotations(textLayerPromise, annotationLayer, textLayer) {
     let error = null;
     try {
       await textLayerPromise;
 
-      if (!this.annotationLayer) {
+      if (
+        annotationLayer !== this.annotationLayer ||
+        textLayer !== this.textLayer
+      ) {
         return; // Rendering was cancelled while the textLayerPromise resolved.
       }
-      await this.annotationLayer.injectLinkAnnotations({
+      await annotationLayer.injectLinkAnnotations({
         inferredLinks: Autolinker.processLinks(this),
         viewport: this.viewport,
         structTreeLayer: this.structTreeLayer,
@@ -1067,14 +1074,12 @@ class PDFPageView extends BasePDFPageView {
         viewport.rawDims
       );
 
-      const textLayerPromise = this.#renderTextLayer();
+      const textLayerPromise = this.textLayer
+        ? this.#renderTextLayer()
+        : null;
 
       if (this.annotationLayer) {
-        await this.#renderAnnotationLayer();
-
-        if (this.#enableAutoLinking && this.annotationLayer && this.textLayer) {
-          await this.#injectLinkAnnotations(textLayerPromise);
-        }
+        await this.#renderAnnotationLayer(textLayerPromise);
       }
 
       const { annotationEditorUIManager } = this.#layerProperties;
