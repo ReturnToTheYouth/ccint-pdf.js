@@ -1074,12 +1074,18 @@ class PDFPageView extends BasePDFPageView {
         viewport.rawDims
       );
 
-      const textLayerPromise = this.textLayer
-        ? this.#renderTextLayer()
-        : null;
+      const { annotationLayer, textLayer } = this;
+      const textLayerPromise = textLayer ? this.#renderTextLayer() : null;
 
-      if (this.annotationLayer) {
+      if (annotationLayer) {
         await this.#renderAnnotationLayer(textLayerPromise);
+      }
+
+      if (
+        annotationLayer !== this.annotationLayer ||
+        textLayer !== this.textLayer
+      ) {
+        return;
       }
 
       const { annotationEditorUIManager } = this.#layerProperties;
@@ -1087,11 +1093,19 @@ class PDFPageView extends BasePDFPageView {
       if (!annotationEditorUIManager) {
         return;
       }
-      this.drawLayer ||= new DrawLayerBuilder({
+      const drawLayer = (this.drawLayer ||= new DrawLayerBuilder({
         pageIndex: this.id,
-      });
+      }));
       await this.#renderDrawLayer();
-      this.drawLayer.setParent(canvasWrapper);
+
+      if (
+        annotationLayer !== this.annotationLayer ||
+        textLayer !== this.textLayer ||
+        drawLayer !== this.drawLayer
+      ) {
+        return;
+      }
+      drawLayer.setParent(canvasWrapper);
 
       this.annotationEditorLayer ||= new AnnotationEditorLayerBuilder({
         uiManager: annotationEditorUIManager,
@@ -1099,9 +1113,9 @@ class PDFPageView extends BasePDFPageView {
         l10n,
         structTreeLayer: this.structTreeLayer,
         accessibilityManager: this._accessibilityManager,
-        annotationLayer: this.annotationLayer?.annotationLayer,
-        textLayer: this.textLayer,
-        drawLayer: this.drawLayer.getDrawLayer(),
+        annotationLayer: annotationLayer?.annotationLayer,
+        textLayer,
+        drawLayer: drawLayer.getDrawLayer(),
         keepEditableAnnotationsHidden: this.#isEditing,
         onAppend: annotationEditorLayerDiv => {
           this.#addLayer(annotationEditorLayerDiv, "annotationEditorLayer");
